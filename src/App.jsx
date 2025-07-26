@@ -1,7 +1,32 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import StudentForm from './components/StudentForm';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useParams } from 'react-router-dom';
 import StudentList from './components/StudentList';
+import StudentForm from './components/StudentForm';
+import EditStudentForm from './components/EditStudentForm';
+
+function AddStudentWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <StudentForm
+      onSuccess={() => navigate('/')}
+      onCancel={() => navigate('/')}
+    />
+  );
+}
+
+function EditStudentWrapper() {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  return (
+    <EditStudentForm
+      id={id}
+      onSuccess={() => navigate('/')}
+      onCancel={() => navigate('/')}
+    />
+  );
+}
 
 function App() {
   return (
@@ -16,8 +41,9 @@ function App() {
       </nav>
 
       <Routes>
-        <Route path="/add" element={<StudentForm />} />
         <Route path="/" element={<StudentList />} />
+        <Route path="/add" element={<AddStudentWrapper />} />
+        <Route path="/edit/:id" element={<EditStudentWrapper />} />
       </Routes>
     </Router>
   );

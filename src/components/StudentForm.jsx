@@ -1,58 +1,93 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-export default function StudentForm() {
-  const [form, setForm] = useState({ name: '', age: '', grade: '', paid: 'false' });
+export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [grade, setGrade] = useState('');
+  const [paid, setPaid] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('http://localhost:5000/api/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: form.name,
-          age: form.age,
-          grade: form.grade,
-          paid: form.paid === 'true', // نحوله لقيمة منطقية
-        }),
-      });
-
-      if (res.ok) {
-        alert('Student added successfully');
-        setForm({ name: '', age: '', grade: '', paid: 'false' });
-      } else {
-        const error = await res.text();
-        console.error(error);
-        alert('Failed to add student');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Server error');
+  useEffect(() => {
+    if (existingStudent) {
+      setName(existingStudent.name);
+      setAge(existingStudent.age.toString());
+      setGrade(existingStudent.grade.toString());
+      setPaid(existingStudent.paid);
     }
+  }, [existingStudent]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    if (!name || isNaN(age) || isNaN(grade)) {
+      setError('❌ Please fill in all fields correctly.');
+      return;
+    }
+
+    const studentData = {
+      name,
+      age: parseInt(age),
+      grade: parseInt(grade),
+      paid,
+    };
+
+    const url = existingStudent ? `http://localhost:5000/api/students/${existingStudent.id}` : 'http://localhost:5000/api/students';
+
+    const method = existingStudent ? 'PUT' : 'POST';
+
+    fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(studentData),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const message = await res.text();
+          throw new Error(`❌ Failed to save student: ${message}`);
+        }
+        return res.status === 204 ? null : res.json();
+      })
+      .then(() => {
+        setName('');
+        setAge('');
+        setGrade('');
+        setPaid(false);
+        setError('');
+        onSuccess();
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || '❌ Something went wrong. Please try again.');
+      });
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md">
-      <h2 className="text-xl font-bold mb-4 text-center">Add Student</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input name="name" placeholder="Name" value={form.name} onChange={handleChange} className="w-full p-2 border rounded" required />
-        <input name="age" placeholder="Age" value={form.age} onChange={handleChange} type="number" className="w-full p-2 border rounded" required />
-        <input name="grade" placeholder="Grade" value={form.grade} onChange={handleChange} className="w-full p-2 border rounded" required />
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto p-4 bg-white shadow-md rounded">
+      {error && <p className="text-red-600 text-center">{error}</p>}
 
-        {/* الدفع */}
-        <select name="paid" value={form.paid} onChange={handleChange} className="w-full p-2 border rounded" required>
-          <option value="false">لم يدفع</option>
-          <option value="true">دفع</option>
-        </select>
+      <input type="text" placeholder="Student Name" className="w-full border rounded p-2" value={name} onChange={(e) => setName(e.target.value)} required />
 
-        <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
-          Add Student
+      <input type="number" placeholder="Age" className="w-full border rounded p-2" value={age} onChange={(e) => setAge(e.target.value)} required />
+
+      <input type="number" placeholder="Grade" className="w-full border rounded p-2" value={grade} onChange={(e) => setGrade(e.target.value)} required />
+
+      <label className="flex items-center space-x-2">
+        <input type="checkbox" checked={paid} onChange={(e) => setPaid(e.target.checked)} />
+        <span>Paid</span>
+      </label>
+
+      <div className="flex space-x-2 justify-end">
+        <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+          {existingStudent ? 'Update Student' : 'Add Student'}
         </button>
-      </form>
-    </div>
+        {existingStudent && (
+          <button type="button" onClick={onCancel} className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">
+            Cancel
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
