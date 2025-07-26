@@ -62,9 +62,11 @@ export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
         paid: formData.paid,
       };
 
-      const baseUrl = 'https://studentregistrationsystem-production-06d9.up.railway.app/api/students';
-      const url = existingStudent ? `${baseUrl}/${existingStudent.id}` : baseUrl;
-      const method = existingStudent ? 'PUT' : 'POST';
+      // جرب هذه الروابط البديلة
+      const baseUrl = 'https://studentregistrationsystem-production-06d9.up.railway.app';
+      const endpoint = existingStudent ? `/update-student/${existingStudent.id}` : '/add-student';
+      const url = baseUrl + endpoint;
+      const method = 'POST'; // جرب POST لجميع الحالات
 
       const response = await fetch(url, {
         method,
@@ -75,19 +77,12 @@ export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
         body: JSON.stringify(studentData),
       });
 
-      // معالجة الاستجابة بشكل أفضل
       const responseText = await response.text();
 
       if (!response.ok) {
-        try {
-          const errorData = JSON.parse(responseText);
-          throw new Error(errorData.message || `خطأ في الخادم: ${response.status}`);
-        } catch {
-          throw new Error(responseText || `خطأ في الخادم: ${response.status}`);
-        }
+        throw new Error(responseText || `Server error: ${response.status}`);
       }
 
-      // إعادة تعيين النموذج إذا لم يكن هناك طالب موجود
       if (!existingStudent) {
         setFormData({
           name: '',
@@ -99,8 +94,8 @@ export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
 
       onSuccess();
     } catch (err) {
-      console.error('خطأ في الإرسال:', err);
-      setError(err.message.includes('Failed to fetch') ? '❌ خطأ في الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.' : err.message);
+      console.error('Error:', err);
+      setError(err.message.includes('Failed to fetch') ? '❌ تعذر الاتصال بالخادم' : err.message.includes('405') ? '❌ الخادم يرفض الطلب. الرابط قد يكون خاطئاً' : err.message);
     } finally {
       setIsSubmitting(false);
     }
