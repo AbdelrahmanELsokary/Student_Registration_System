@@ -3,7 +3,15 @@ from flask_cors import CORS
 import sqlite3
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # هنا فعلنا CORS بشكل عام
+
+# إضافة دالة after_request لضبط رؤوس الـ CORS بشكل كامل
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 # الاتصال بقاعدة البيانات
 def get_db_connection():
@@ -11,13 +19,12 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-# جلب كل الطلاب
+# باقي الكود (جلب، إضافة، تعديل، حذف الطلاب) ...
 @app.route('/api/students', methods=['GET'])
 def get_students():
     conn = get_db_connection()
     students = conn.execute('SELECT * FROM students').fetchall()
     conn.close()
-
     students_list = [
         {
             'id': student['id'],
@@ -30,11 +37,9 @@ def get_students():
     ]
     return jsonify(students_list)
 
-# إضافة طالب جديد
 @app.route('/api/students', methods=['POST'])
 def add_student():
     data = request.get_json()
-
     name = data.get('name')
     age = data.get('age')
     grade = data.get('grade')
@@ -57,11 +62,9 @@ def add_student():
         print('Error adding student:', e)
         return jsonify({'error': 'Failed to add student'}), 500
 
-# تعديل بيانات طالب
 @app.route('/api/students/<int:student_id>', methods=['PUT'])
 def update_student(student_id):
     data = request.get_json()
-
     name = data.get('name')
     age = data.get('age')
     grade = data.get('grade')
@@ -84,7 +87,6 @@ def update_student(student_id):
         print('Error updating student:', e)
         return jsonify({'error': 'Failed to update student'}), 500
 
-# حذف طالب
 @app.route('/api/students/<int:student_id>', methods=['DELETE'])
 def delete_student(student_id):
     try:
