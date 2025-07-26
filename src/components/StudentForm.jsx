@@ -31,7 +31,7 @@ export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
       paid,
     };
 
-    const url = existingStudent ? `http://localhost:5000/api/students/${existingStudent.id}` : 'http://localhost:5000/api/students';
+    const url = existingStudent ? `https://student-registration-system.up.railway.app/api/students/${existingStudent.id}` : 'https://student-registration-system.up.railway.app/api/students';
 
     const method = existingStudent ? 'PUT' : 'POST';
 
