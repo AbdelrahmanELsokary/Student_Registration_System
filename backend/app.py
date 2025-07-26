@@ -1,42 +1,42 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import sqlite3
+import os
 
 app = Flask(__name__)
-CORS(app)  # هنا فعلنا CORS بشكل عام
 
-# إضافة دالة after_request لضبط رؤوس الـ CORS بشكل كامل
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# إعداد CORS لتغطية كل الروابط والإجراءات المطلوبة
+CORS(app, resources={r"/api/*": {
+    "origins": "*",
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    "allow_headers": ["Content-Type", "Authorization"]
+}})
 
 # الاتصال بقاعدة البيانات
 def get_db_connection():
-    conn = sqlite3.connect('students.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'students.db')
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
 
-# باقي الكود (جلب، إضافة، تعديل، حذف الطلاب) ...
+# إحضار جميع الطلاب
 @app.route('/api/students', methods=['GET'])
 def get_students():
     conn = get_db_connection()
     students = conn.execute('SELECT * FROM students').fetchall()
     conn.close()
-    students_list = [
+    return jsonify([
         {
-            'id': student['id'],
-            'name': student['name'],
-            'age': student['age'],
-            'grade': student['grade'],
-            'paid': bool(student['paid'])
+            'id': s['id'],
+            'name': s['name'],
+            'age': s['age'],
+            'grade': s['grade'],
+            'paid': bool(s['paid'])
         }
-        for student in students
-    ]
-    return jsonify(students_list)
+        for s in students
+    ])
 
+# إضافة طالب جديد
 @app.route('/api/students', methods=['POST'])
 def add_student():
     data = request.get_json()
@@ -62,6 +62,7 @@ def add_student():
         print('Error adding student:', e)
         return jsonify({'error': 'Failed to add student'}), 500
 
+# تعديل بيانات طالب
 @app.route('/api/students/<int:student_id>', methods=['PUT'])
 def update_student(student_id):
     data = request.get_json()
@@ -87,6 +88,7 @@ def update_student(student_id):
         print('Error updating student:', e)
         return jsonify({'error': 'Failed to update student'}), 500
 
+# حذف طالب
 @app.route('/api/students/<int:student_id>', methods=['DELETE'])
 def delete_student(student_id):
     try:
@@ -100,9 +102,7 @@ def delete_student(student_id):
         print('Error deleting student:', e)
         return jsonify({'error': 'Failed to delete student'}), 500
 
-
-import os
-
+# تشغيل التطبيق
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port)
