@@ -38,7 +38,7 @@ export default function EditStudentForm({ student, onCancel, onUpdate }) {
     }
 
     try {
-      const res = await fetch(`http://localhost:5000/api/students/${student.id}`, {
+      const res = await fetch(`https://studentregistrationsystem-production-06d9.up.railway.app/api/students/${student.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),

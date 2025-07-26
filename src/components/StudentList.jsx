@@ -11,7 +11,7 @@ export default function StudentList() {
   }, []);
 
   const fetchStudents = () => {
-    fetch('http://localhost:5000/api/students')
+    fetch('https://studentregistrationsystem-production-06d9.up.railway.app/api/students')
       .then((res) => res.json())
       .then((data) => setStudents(data))
       .catch((err) => console.error('Failed to fetch students', err));
@@ -23,7 +23,7 @@ export default function StudentList() {
   };
 
   const handleDeleteClick = (id) => {
-    fetch(`http://localhost:5000/api/students/${id}`, {
+    fetch(`https://studentregistrationsystem-production-06d9.up.railway.app/api/students/${id}`, {
       method: 'DELETE',
     })
       .then(() => fetchStudents())
