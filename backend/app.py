@@ -136,9 +136,11 @@ def create_student():
         raise APIError("Failed to create student", 500)
 
 # ✅ NEW: POST to /add (alias for /api/students)
-@app.route('/add', methods=['POST'])
-def add_student_alias():
-    return create_student()
+@app.route('/add_student', methods=['POST'])
+def add_student():
+    data= request.get_json()
+    print(data)
+    return jsonify({"msg": "Student added successfully"}),
 
 # PUT: update a student
 @app.route('/api/students/<int:student_id>', methods=['PUT'])
