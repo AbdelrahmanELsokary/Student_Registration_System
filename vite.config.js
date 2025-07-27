@@ -3,18 +3,17 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: 'dist', // تأكد من وجود هذا السطر
+    emptyOutDir: true,
+  },
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Flask dev server
+        target: 'https://studentregistrationsystem-production-c988.up.railway.app',
         changeOrigin: true,
-        secure: false,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
-  },
-  build: {
-    outDir: '../server/static', // For production deployment
-    emptyOutDir: true,
   },
 });
