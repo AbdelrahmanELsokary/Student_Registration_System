@@ -63,7 +63,7 @@ export default function StudentForm({ existingStudent, onSuccess, onCancel }) {
       };
 
       // Try multiple possible API endpoints
-      const baseUrl = 'https://studentregistrationsystem-production-06d9.up.railway.app';
+      const baseUrl = 'https://studentregistrationsystem-production-c988.up.railway.app/api';
       const endpoints = [
         '/api/students', // First try
         '/students', // Second try

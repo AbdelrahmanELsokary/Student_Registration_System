@@ -61,7 +61,7 @@ export default function EditStudentForm({ student, onCancel, onUpdate }) {
         paid: formData.paid,
       };
 
-      const response = await fetch(`https://studentregistrationsystem-production-06d9.up.railway.app/api/students/${student.id}`, {
+      const response = await fetch(`https://studentregistrationsystem-production-c988.up.railway.app/api/students/${student.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
