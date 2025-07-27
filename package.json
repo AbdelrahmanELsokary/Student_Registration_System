@@ -1,4 +1,5 @@
 {
+  "proxy": "https://studentregistrationsystem-production-06d9.up.railway.app",
   "name": "my-project",
   "private": true,
   "version": "0.0.0",
