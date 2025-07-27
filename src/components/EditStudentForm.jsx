@@ -7,15 +7,15 @@ export default function EditStudentForm({ student, onCancel, onUpdate }) {
     grade: '',
     paid: false,
   });
-
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (student) {
       setFormData({
         name: student.name || '',
-        age: student.age || '',
-        grade: student.grade || '',
+        age: student.age?.toString() || '',
+        grade: student.grade?.toString() || '',
         paid: student.paid || false,
       });
     }
@@ -29,55 +29,122 @@ export default function EditStudentForm({ student, onCancel, onUpdate }) {
     }));
   };
 
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      setError('Name is required');
+      return false;
+    }
+    if (isNaN(formData.age) || formData.age < 5 || formData.age > 25) {
+      setError('Please enter a valid age (5-25)');
+      return false;
+    }
+    if (isNaN(formData.grade) || formData.grade < 0 || formData.grade > 100) {
+      setError('Please enter a valid grade (0-100)');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    if (!formData.name || !formData.age || !formData.grade) {
-      setError('Please fill in all fields.');
-      return;
-    }
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
 
     try {
-      const res = await fetch(`https://studentregistrationsystem-production-06d9.up.railway.app/api/students/${student.id}`, {
+      const studentData = {
+        name: formData.name.trim(),
+        age: parseInt(formData.age),
+        grade: parseInt(formData.grade),
+        paid: formData.paid,
+      };
+
+      const response = await fetch(`https://studentregistrationsystem-production-06d9.up.railway.app/api/students/${student.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify(studentData),
       });
 
-      if (res.ok) {
-        setError('');
-        onUpdate(); // إعادة تحميل الطلاب
-      } else {
-        setError('Failed to update student.');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Server error: ${response.status}`);
       }
+
+      onUpdate(); // Refresh student list
     } catch (err) {
-      console.error(err);
-      setError('Server error.');
+      console.error('Update error:', err);
+      setError(err.message.includes('Failed to fetch') ? 'Network error. Please check your connection' : err.message.includes('405') ? 'Server rejected the update request' : err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-yellow-50 rounded-xl shadow space-y-4">
-      <h2 className="text-xl font-bold text-center">Edit Student</h2>
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10 p-6 bg-yellow-50 rounded-xl shadow-md space-y-4">
+      <h2 className="text-xl font-bold text-center text-gray-800">Edit Student</h2>
 
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <div className="p-3 bg-red-100 text-red-700 rounded text-center">{error}</div>}
 
-      <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="w-full p-2 border rounded" required />
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Student Name</label>
+        <input
+          type="text"
+          name="name"
+          placeholder="Enter student name"
+          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={formData.name}
+          onChange={handleChange}
+          required
+        />
+      </div>
 
-      <input type="number" name="age" value={formData.age} onChange={handleChange} placeholder="Age" className="w-full p-2 border rounded" required />
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Age</label>
+        <input
+          type="number"
+          name="age"
+          placeholder="Enter age (5-25)"
+          min="5"
+          max="25"
+          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={formData.age}
+          onChange={handleChange}
+          required
+        />
+      </div>
 
-      <input type="text" name="grade" value={formData.grade} onChange={handleChange} placeholder="Grade" className="w-full p-2 border rounded" required />
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">Grade</label>
+        <input
+          type="number"
+          name="grade"
+          placeholder="Enter grade (0-100)"
+          min="0"
+          max="100"
+          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          value={formData.grade}
+          onChange={handleChange}
+          required
+        />
+      </div>
 
-      <label className="flex items-center space-x-2">
-        <input type="checkbox" name="paid" checked={formData.paid} onChange={handleChange} />
-        <span>Paid</span>
-      </label>
+      <div className="flex items-center space-x-2">
+        <input type="checkbox" name="paid" id="paid" checked={formData.paid} onChange={handleChange} className="h-4 w-4 text-blue-600 rounded focus:ring-blue-500" />
+        <label htmlFor="paid" className="text-sm font-medium text-gray-700">
+          Paid
+        </label>
+      </div>
 
-      <div className="flex gap-4">
-        <button type="submit" className="flex-1 bg-green-600 text-white p-2 rounded hover:bg-green-700 transition">
-          Update
+      <div className="flex space-x-4 pt-4">
+        <button type="submit" disabled={isSubmitting} className={`flex-1 py-2 px-4 rounded-md text-white ${isSubmitting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'} transition-colors`}>
+          {isSubmitting ? 'Updating...' : 'Update Student'}
         </button>
-        <button type="button" onClick={onCancel} className="flex-1 bg-gray-400 text-white p-2 rounded hover:bg-gray-600 transition">
+        <button type="button" onClick={onCancel} disabled={isSubmitting} className="flex-1 py-2 px-4 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors">
           Cancel
         </button>
       </div>
