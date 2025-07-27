@@ -6,8 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "npm run build",
+    "lint": "eslint . --ext js,jsx --fix"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "dependencies": {
     "cors": "^2.8.5",
