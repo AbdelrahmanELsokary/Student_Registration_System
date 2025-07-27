@@ -16,7 +16,7 @@ cors = CORS(app, resources={
         "origins": [
             "https://student-registration-system-black-three.vercel.app",
             "http://localhost:3000",
-            "http://localhost:5173"  # Vite default port
+            "http://localhost:5173"
         ],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
@@ -86,7 +86,7 @@ def after_request(response):
     response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
 
-# API Endpoints
+# GET all students
 @app.route('/api/students', methods=['GET'])
 def get_students():
     try:
@@ -100,6 +100,7 @@ def get_students():
         logging.error(f"Database error: {str(e)}")
         raise APIError("Failed to fetch students", 500)
 
+# POST: create a new student
 @app.route('/api/students', methods=['POST'])
 def create_student():
     try:
@@ -122,7 +123,6 @@ def create_student():
             db.commit()
             student_id = cursor.lastrowid
             
-            # Return the created student
             student = db.execute(
                 'SELECT * FROM students WHERE id = ?',
                 (student_id,)
@@ -135,6 +135,12 @@ def create_student():
         logging.error(f"Creation error: {str(e)}")
         raise APIError("Failed to create student", 500)
 
+# ✅ NEW: POST to /add (alias for /api/students)
+@app.route('/add', methods=['POST'])
+def add_student_alias():
+    return create_student()
+
+# PUT: update a student
 @app.route('/api/students/<int:student_id>', methods=['PUT'])
 def update_student(student_id):
     try:
@@ -144,7 +150,6 @@ def update_student(student_id):
             raise APIError("No data provided", 400)
         
         with closing(get_db()) as db:
-            # Check if student exists
             student = db.execute(
                 'SELECT * FROM students WHERE id = ?',
                 (student_id,)
@@ -153,7 +158,6 @@ def update_student(student_id):
             if not student:
                 raise APIError("Student not found", 404)
             
-            # Update student
             db.execute(
                 '''UPDATE students
                 SET name = ?, age = ?, grade = ?, paid = ?
@@ -168,7 +172,6 @@ def update_student(student_id):
             )
             db.commit()
             
-            # Return updated student
             updated = db.execute(
                 'SELECT * FROM students WHERE id = ?',
                 (student_id,)
@@ -181,11 +184,11 @@ def update_student(student_id):
         logging.error(f"Update error: {str(e)}")
         raise APIError("Failed to update student", 500)
 
+# DELETE: remove a student
 @app.route('/api/students/<int:student_id>', methods=['DELETE'])
 def delete_student(student_id):
     try:
         with closing(get_db()) as db:
-            # Check if student exists
             student = db.execute(
                 'SELECT * FROM students WHERE id = ?',
                 (student_id,)
