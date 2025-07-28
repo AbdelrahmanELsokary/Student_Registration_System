@@ -1,30 +1,29 @@
-// src/App.jsx
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import StudentForm from './components/StudentForm';
-import StudentList from './components/StudentList';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import AddStudentPage from './components/pages/AddStudent';
+import StudentListPage from './components/pages/StudentList';
 
-export default function App() {
-  const [students, setStudents] = useState([]);
-
-  const fetchStudents = async () => {
-    try {
-      const res = await axios.get('http://127.0.0.1:5000/students');
-      setStudents(res.data);
-    } catch (err) {
-      console.error('Failed to fetch students', err);
-    }
-  };
-
-  useEffect(() => {
-    fetchStudents();
-  }, []);
-
+function App() {
   return (
-    <div className="max-w-3xl mx-auto mt-10 p-4">
-      <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">Student Registration</h1>
-      <StudentForm onStudentAdded={fetchStudents} />
-      <StudentList students={students} onRefresh={fetchStudents} />
-    </div>
+    <Router>
+      <div className="min-h-screen p-4 bg-gray-50">
+        <nav className="mb-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Student System</h1>
+          <div className="space-x-4">
+            <Link to="/" className="text-blue-600 hover:underline">
+              Add Student
+            </Link>
+            <Link to="/students" className="text-blue-600 hover:underline">
+              View Students
+            </Link>
+          </div>
+        </nav>
+        <Routes>
+          <Route path="/" element={<AddStudentPage />} />
+          <Route path="/students" element={<StudentListPage />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
+
+export default App;

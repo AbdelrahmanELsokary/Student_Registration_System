@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/AbdelrahmanELsokary/Student_Registration_System#readme",
   "dependencies": {
+    "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.7.1"
   }
 }
