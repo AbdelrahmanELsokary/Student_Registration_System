@@ -16,8 +16,19 @@ def init_db():
             )
         ''')
 
+        # إنشاء جدول الحضور
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                date TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('present', 'absent')),
+                FOREIGN KEY (student_id) REFERENCES students(id)
+            )
+        ''')
+
         conn.commit()
-        print("✅ تم إنشاء قاعدة البيانات والجدول بنجاح.")
+        print("✅ تم إنشاء قاعدة البيانات والجداول بنجاح.")
 
 if __name__ == "__main__":
     init_db()

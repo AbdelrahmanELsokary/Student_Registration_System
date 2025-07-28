@@ -1,12 +1,15 @@
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { createRoot } from 'react-dom/client';
-import { Toaster } from 'react-hot-toast';
 import { StrictMode } from 'react';
 import App from './App.jsx';
 import './index.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
-    <Toaster position="top-center" reverseOrder={false} />
+    <>
+      <App />
+      <ToastContainer position="top-center" autoClose={3000} />
+    </>
   </StrictMode>
 );

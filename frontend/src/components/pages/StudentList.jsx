@@ -12,7 +12,7 @@ export default function StudentList() {
       const res = await axios.get('http://127.0.0.1:5000/students');
       setStudents(res.data);
       setError(null);
-    } catch  {
+    } catch {
       toast.error('Failed to fetch students');
     }
   };
