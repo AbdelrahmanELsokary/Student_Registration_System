@@ -3,18 +3,14 @@ from flask_cors import CORS
 import sqlite3
 from contextlib import closing
 
-# إعداد التطبيق
 app = Flask(__name__)
 CORS(app)
 
-# اسم قاعدة البيانات
 DATABASE = 'students.db'
 
-# دالة الاتصال بقاعدة البيانات
 def get_db():
     return sqlite3.connect(DATABASE)
 
-# ========== [مسارات الطلاب] ==========
 
 @app.route('/students', methods=['GET'])
 def get_students():
@@ -79,7 +75,6 @@ def delete_student(student_id):
         conn.commit()
         return jsonify({'message': 'Student deleted successfully'})
 
-# ========== [مسارات الحضور] ==========
 
 @app.route('/attendance', methods=['POST'])
 def mark_attendance():
@@ -90,7 +85,6 @@ def mark_attendance():
 
     with closing(get_db()) as conn:
         cur = conn.cursor()
-        # حذف القديم (إن وجد) لتحديثه
         cur.execute('DELETE FROM attendance WHERE student_id = ? AND date = ?', (student_id, date))
         cur.execute('''
             INSERT INTO attendance (student_id, date, status)
@@ -145,12 +139,10 @@ def attendance_summary():
     filters = []
     params = []
 
-    # فلترة بالتاريخ
     if from_date and to_date:
         filters.append("a.date BETWEEN ? AND ?")
         params.extend([from_date, to_date])
 
-    # فلترة بالصف الدراسي
     if grade and grade != 'All':
         filters.append("s.grade = ?")
         params.append(grade)
@@ -176,8 +168,6 @@ def attendance_summary():
         ]
         return jsonify(summary)
 
-
-# ========== [تشغيل السيرفر] ==========
 
 if __name__ == '__main__':
     app.run(debug=True)
