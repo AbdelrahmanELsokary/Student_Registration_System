@@ -27,8 +27,11 @@ export default function Navbar() {
           >
             View Students
           </Link>
-          <Link to="/attendance" className="text-blue-600 hover:underline">
-            تسجيل الحضور
+          <Link
+            to="/attendance"
+            className="bg-white text-green-600 font-semibold px-5 py-2 rounded-lg shadow hover:bg-green-100 hover:scale-105 transition-transform duration-300 w-full sm:w-auto text-center"
+          >
+            Attendance registration
           </Link>
         </div>
       </nav>

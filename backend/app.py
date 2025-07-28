@@ -1,178 +1,156 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import sqlite3
+from flask_cors import CORS
+from contextlib import closing
 from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-DB_NAME = 'students.db'
+DATABASE = 'students.db'
 
-# إنشاء قاعدة البيانات والجداول إذا لم تكن موجودة
+def connect_db():
+    conn = sqlite3.connect(DATABASE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+# 🧱 إنشاء قاعدة البيانات إذا لم تكن موجودة
 def init_db():
-    with sqlite3.connect(DB_NAME) as conn:
-        # جدول الطلاب
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS students (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                grade TEXT NOT NULL,
-                guardian_phone TEXT NOT NULL,
-                fees_paid INTEGER NOT NULL
-            )
-        ''')
+    with closing(connect_db()) as conn:
+        with conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS students (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    grade TEXT NOT NULL,
+                    guardian_phone TEXT,
+                    fees_paid BOOLEAN NOT NULL DEFAULT 0
+                )
+            ''')
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS attendance (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    status TEXT CHECK(status IN ('present', 'absent')),
+                    FOREIGN KEY(student_id) REFERENCES students(id)
+                )
+            ''')
 
-        # جدول الحضور
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS attendance (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id INTEGER NOT NULL,
-                date TEXT NOT NULL,
-                status TEXT NOT NULL CHECK(status IN ('present', 'absent')),
-                FOREIGN KEY (student_id) REFERENCES students(id)
-            )
-        ''')
-        conn.commit()
-
-# استدعاء إنشاء قاعدة البيانات عند التشغيل
-init_db()
-
-# إرجاع كل الطلاب
+# ✅ عرض كل الطلاب
 @app.route('/students', methods=['GET'])
 def get_students():
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM students")
-        rows = cursor.fetchall()
-        students = []
-        for row in rows:
-            students.append({
-                'id': row[0],
-                'name': row[1],
-                'grade': row[2],
-                'guardian_phone': row[3],
-                'fees_paid': bool(row[4])
-            })
-        return jsonify(students), 200
-
-# إرجاع طالب حسب ID
-@app.route('/attendance/date/<date>', methods=['GET'])
-def get_attendance_by_date(date):
-    conn = sqlite3.connect('database.db')
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT s.id, s.name, s.grade, s.guardian_phone, s.fees_paid,
-               COALESCE(a.status, '') as status
-        FROM students s
-        LEFT JOIN attendance a
-        ON s.id = a.student_id AND a.date = ?
-    ''', (date,))
-
-    rows = cursor.fetchall()
-    conn.close()
-
-    students = []
-    for row in rows:
-        students.append({
-            'id': row[0],
-            'name': row[1],
-            'grade': row[2],
-            'guardian_phone': row[3],
-            'fees_paid': bool(row[4]),
-            'status': row[5] if row[5] else 'absent'
-        })
-
+        cursor.execute('SELECT * FROM students')
+        students = [dict(row) for row in cursor.fetchall()]
     return jsonify(students)
 
-# إضافة طالب جديد
+# ✅ إضافة طالب
 @app.route('/add', methods=['POST'])
 def add_student():
     data = request.get_json()
-    name = data['name']
-    grade = data['grade']
-    guardian_phone = data['guardian_phone']
-    fees_paid = 1 if data['fees_paid'] else 0
+    if not data or 'name' not in data or 'grade' not in data or 'guardian_phone' not in data:
+        return jsonify({'error': 'Missing fields'}), 400
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO students (name, grade, guardian_phone, fees_paid) VALUES (?, ?, ?, ?)",
-                       (name, grade, guardian_phone, fees_paid))
+        cursor.execute('''
+            INSERT INTO students (name, grade, guardian_phone, fees_paid)
+            VALUES (?, ?, ?, ?)
+        ''', (data['name'], data['grade'], data['guardian_phone'], data.get('fees_paid', False)))
         conn.commit()
-        return jsonify({'message': 'Student added successfully'}), 201
+    return jsonify({'message': 'Student added successfully'}), 201
 
-# تعديل بيانات طالب
+# ✅ تعديل طالب
 @app.route('/student/<int:student_id>', methods=['PUT'])
 def update_student(student_id):
     data = request.get_json()
-    name = data['name']
-    grade = data['grade']
-    guardian_phone = data['guardian_phone']
-    fees_paid = 1 if data['fees_paid'] else 0
-
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE students SET name = ?, grade = ?, guardian_phone = ?, fees_paid = ? WHERE id = ?",
-                       (name, grade, guardian_phone, fees_paid, student_id))
+        cursor.execute('''
+            UPDATE students
+            SET name = ?, grade = ?, guardian_phone = ?, fees_paid = ?
+            WHERE id = ?
+        ''', (
+            data['name'],
+            data['grade'],
+            data['guardian_phone'],
+            data['fees_paid'],
+            student_id
+        ))
         conn.commit()
-        return jsonify({'message': 'Student updated successfully'}), 200
+    return jsonify({'message': 'Student updated successfully'}), 200
 
-# حذف طالب
-@app.route('/delete/<int:student_id>', methods=['DELETE'])
+# ✅ حذف طالب
+@app.route('/student/<int:student_id>', methods=['DELETE'])
 def delete_student(student_id):
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM students WHERE id = ?", (student_id,))
+        cursor.execute('DELETE FROM students WHERE id = ?', (student_id,))
         conn.commit()
-        return jsonify({'message': 'Student deleted successfully'}), 200
+    return jsonify({'message': 'Student deleted successfully'}), 200
 
-# تسجيل حضور لطالب مع منع التكرار في نفس اليوم
+# ✅ عرض طالب واحد
+@app.route('/student/<int:student_id>', methods=['GET'])
+def get_student(student_id):
+    with closing(connect_db()) as conn:
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM students WHERE id = ?', (student_id,))
+        student = cursor.fetchone()
+        if student:
+            return jsonify(dict(student))
+        else:
+            return jsonify({'error': 'Student not found'}), 404
+
+# ✅ تسجيل الحضور
 @app.route('/attendance', methods=['POST'])
-def add_attendance():
+def mark_attendance():
     data = request.get_json()
+
+    if not data or 'student_id' not in data or 'status' not in data:
+        return jsonify({'error': 'student_id and status are required'}), 400
+
     student_id = data['student_id']
-    status = data['status']  # 'present' or 'absent'
-    date = data.get('date') or datetime.now().strftime('%Y-%m-%d')
+    status = data['status']
+    date = data.get('date', datetime.today().strftime('%Y-%m-%d'))
 
-    with sqlite3.connect(DB_NAME) as conn:
+    if status not in ['present', 'absent']:
+        return jsonify({'error': 'Status must be present or absent'}), 400
+
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
 
-        # منع التكرار: تأكد أن الطالب لم يُسجل له حضور بالفعل في نفس اليوم
-        cursor.execute("SELECT * FROM attendance WHERE student_id = ? AND date = ?", (student_id, date))
-        existing = cursor.fetchone()
-        if existing:
-            return jsonify({'error': 'Attendance already recorded for this student today'}), 400
+        # تأكد من وجود الطالب
+        cursor.execute('SELECT id FROM students WHERE id = ?', (student_id,))
+        if not cursor.fetchone():
+            return jsonify({'error': 'Student not found'}), 400
 
-        # تسجيل الحضور
-        cursor.execute("INSERT INTO attendance (student_id, date, status) VALUES (?, ?, ?)",
-                       (student_id, date, status))
+        # حذف الحضور القديم لهذا اليوم
+        cursor.execute('DELETE FROM attendance WHERE student_id = ? AND date = ?', (student_id, date))
+
+        # إدخال الحضور
+        cursor.execute('''
+            INSERT INTO attendance (student_id, date, status)
+            VALUES (?, ?, ?)
+        ''', (student_id, date, status))
         conn.commit()
-        return jsonify({'message': 'Attendance recorded'}), 201
 
-# الحصول على حضور طالب معين
-@app.route('/attendance/<int:student_id>', methods=['GET'])
-def get_attendance(student_id):
-    with sqlite3.connect(DB_NAME) as conn:
+    return jsonify({'message': f'Attendance marked as {status}'}), 200
+
+# ✅ استرجاع الحضور حسب التاريخ
+@app.route('/attendance/date/<date>', methods=['GET'])
+def get_attendance_by_date(date):
+    with closing(connect_db()) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT date, status FROM attendance WHERE student_id = ? ORDER BY date DESC", (student_id,))
-        rows = cursor.fetchall()
-        attendance_list = [{'date': row[0], 'status': row[1]} for row in rows]
-        return jsonify(attendance_list), 200
-
-
-# فلترة حضور طالب معين حسب شهر وسنة
-@app.route('/attendance/monthly/<int:student_id>/<int:year>/<int:month>', methods=['GET'])
-def get_monthly_attendance(student_id, year, month):
-    month_str = f"{year:04d}-{month:02d}"
-    with sqlite3.connect(DB_NAME) as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT date, status FROM attendance WHERE student_id = ? AND date LIKE ? ORDER BY date ASC",
-            (student_id, f"{month_str}-%")
-        )
-        rows = cursor.fetchall()
-        attendance_list = [{'date': row[0], 'status': row[1]} for row in rows]
-        return jsonify(attendance_list), 200
+        cursor.execute('''
+            SELECT s.*, a.status
+            FROM students s
+            LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
+        ''', (date,))
+        records = [dict(row) for row in cursor.fetchall()]
+    return jsonify(records)
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
