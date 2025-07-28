@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+import axios from 'axios';
 
 export default function StudentForm() {
   const [name, setName] = useState('');
@@ -48,7 +48,6 @@ export default function StudentForm() {
     <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6">
       <h2 className="text-2xl font-bold text-gray-700 text-center">Add New Student</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* الاسم */}
         <div>
           <label className="block mb-1 text-gray-700 font-medium">Student Name</label>
           <input
@@ -65,7 +64,6 @@ export default function StudentForm() {
           {!isNameValid && touchedName && <p className="text-sm text-red-500 mt-1">Name must be at least 2 characters.</p>}
         </div>
 
-        {/* السنة الدراسية */}
         <div>
           <label className="block mb-1 text-gray-700 font-medium">Grade</label>
           <select
@@ -83,7 +81,6 @@ export default function StudentForm() {
           </select>
         </div>
 
-        {/* رقم ولي الأمر */}
         <div>
           <label className="block mb-1 text-gray-700 font-medium">Parent Phone Number</label>
           <input
@@ -101,7 +98,6 @@ export default function StudentForm() {
           {!isPhoneValid && touchedPhone && <p className="text-sm text-red-500 mt-1">Enter a valid Egyptian phone number.</p>}
         </div>
 
-        {/* مصاريف مدفوعة */}
         <div className="flex items-center space-x-2">
           <input type="checkbox" id="feesPaid" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} className="accent-green-600" />
           <label htmlFor="feesPaid" className="text-gray-700">

@@ -1,12 +1,11 @@
-import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 
 export default function EditStudentForm() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const [name, setName] = useState('');
   const [grade, setGrade] = useState('');
   const [guardianPhone, setGuardianPhone] = useState('');
@@ -15,59 +14,62 @@ export default function EditStudentForm() {
   const gradeOptions = ['First Preparatory', 'Second Preparatory', 'Third Preparatory', 'First Secondary', 'Second Secondary', 'Third Secondary'];
 
   useEffect(() => {
-    axios
-      .get(`http://127.0.0.1:5000/student/${id}`)
-      .then((res) => {
+    const fetchStudent = async () => {
+      try {
+        const res = await axios.get(`http://127.0.0.1:5000/student/${id}`);
         const student = res.data;
         setName(student.name);
         setGrade(student.grade);
         setGuardianPhone(student.guardian_phone);
-        setFeesPaid(!!student.fees_paid);
-      })
-      .catch(() => {
-        toast.error('Failed to fetch student data.');
-      });
+        setFeesPaid(student.fees_paid === 1);
+      } catch {
+        toast.error('Failed to fetch student data');
+      }
+    };
+
+    fetchStudent();
   }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const updatedStudent = {
-      name,
-      grade,
-      guardian_phone: guardianPhone,
-      fees_paid: feesPaid ? 1 : 0,
-    };
-
     try {
-      await axios.put(`http://127.0.0.1:5000/student/${id}`, updatedStudent);
-      toast.success('Student updated successfully!');
-      navigate('/students');
+      await axios.put(`http://127.0.0.1:5000/update/${id}`, {
+        name,
+        grade,
+        guardian_phone: guardianPhone,
+        fees_paid: feesPaid ? 1 : 0,
+      });
+      toast.success('Student updated successfully');
+      navigate('/');
     } catch {
-      toast.error('Failed to update student.');
+      toast.error('Failed to update student');
     }
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6">
-      <h2 className="text-2xl font-bold text-gray-700 text-center">Edit Student</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-w-3xl mx-auto px-6 py-10">
+      <h2 className="text-3xl font-bold text-blue-700 mb-8 text-center">Edit Student</h2>
+
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-8 shadow-md rounded-lg">
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">Student Name</label>
+          <label className="block mb-1 text-gray-700 font-medium">Name</label>
           <input
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             type="text"
-            placeholder="Enter student name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            minLength={2}
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">Grade</label>
-          <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" value={grade} onChange={(e) => setGrade(e.target.value)} required>
+          <label className="block mb-1 text-gray-700 font-medium">Grade</label>
+          <select
+            value={grade}
+            onChange={(e) => setGrade(e.target.value)}
+            required
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
             <option value="">-- Select Grade --</option>
             {gradeOptions.map((g) => (
               <option key={g} value={g}>
@@ -78,29 +80,28 @@ export default function EditStudentForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">Parent Phone Number</label>
+          <label className="block mb-1 text-gray-700 font-medium">Guardian Phone</label>
           <input
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             type="tel"
-            placeholder="e.g. 01012345678"
             value={guardianPhone}
             onChange={(e) => setGuardianPhone(e.target.value)}
-            pattern="^01[0125][0-9]{8}$"
             required
-            title="Please enter a valid Egyptian phone number (e.g. 01012345678)"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div className="flex items-center space-x-2">
-          <input type="checkbox" id="feesPaid" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} className="accent-blue-500" />
-          <label htmlFor="feesPaid" className="text-gray-600">
+        <div className="flex items-center gap-3">
+          <input id="feesPaid" type="checkbox" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} className="h-5 w-5 text-green-600 focus:ring-green-500 border-gray-300 rounded" />
+          <label htmlFor="feesPaid" className="text-gray-700 font-medium">
             Fees Paid
           </label>
         </div>
 
-        <button type="submit" className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-          Update Student
-        </button>
+        <div className="text-center">
+          <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow-md transition">
+            Update Student
+          </button>
+        </div>
       </form>
     </div>
   );

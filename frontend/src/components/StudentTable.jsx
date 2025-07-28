@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { FaEdit, FaTrash, FaSearch, FaSyncAlt, FaFileCsv } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
 export default function StudentsTable({ students, onDelete, onRefresh }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -8,7 +8,6 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
 
   const allGrades = [...new Set(students.map((s) => s.grade))];
 
-  // Filter students based on search and selected grade
   const filteredStudents = students.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = selectedGrade === 'All' || s.grade === selectedGrade;
@@ -38,7 +37,6 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
 
   return (
     <div className="p-4">
-      {/* Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-100 text-blue-800 p-4 rounded-lg shadow text-center">
           <h4 className="text-sm font-semibold">Total Students</h4>
@@ -54,7 +52,6 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         </div>
       </div>
 
-      {/* Search, Filter, Buttons */}
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0">
         <div className="relative w-full sm:w-1/3">
           <input
@@ -62,7 +59,7 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
             placeholder="Search by name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <FaSearch className="absolute left-3 top-3 text-gray-400" />
         </div>
@@ -89,7 +86,6 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         </button>
       </div>
 
-      {/* Students Table Grouped */}
       {Object.keys(groupedStudents).length === 0 ? (
         <div className="text-center text-gray-500 py-10">No students found.</div>
       ) : (

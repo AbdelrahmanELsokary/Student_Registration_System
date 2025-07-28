@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import StudentsTable from '../StudentTable';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 
 export default function StudentList() {
   const [students, setStudents] = useState([]);
