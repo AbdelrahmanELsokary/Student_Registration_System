@@ -1,94 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 export default function EditStudentForm() {
-  const { id } = useParams();
+  const { id } = useParams(); // أخذ ID الطالب من URL
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [grade, setGrade] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
+  const [feesPaid, setFeesPaid] = useState(false);
 
+  // عند تحميل الصفحة، جلب بيانات الطالب
   useEffect(() => {
-    const fetchStudent = async () => {
-      try {
-        const response = await axios.get(`http://127.0.0.1:5000/student/${id}`);
-        const studentData = response.data;
-        setName(studentData.name);
-        setEmail(studentData.email);
-        setPhone(studentData.phone);
-        setLoading(false);
-      } catch {
-        setError('Student not found or error fetching data');
-        setLoading(false);
-      }
-    };
-
-    fetchStudent();
+    axios
+      .get(`http://127.0.0.1:5000/student/${id}`)
+      .then((res) => {
+        const student = res.data;
+        setName(student.name);
+        setGrade(student.grade);
+        setParentPhone(student.guardian_phone);
+        setFeesPaid(student.fees_paid);
+      })
+      .catch(() => {
+        toast.error('Failed to fetch student data.');
+      });
   }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const updatedStudent = {
+      name,
+      grade,
+      guardian_phone: parentPhone,
+      fees_paid: feesPaid,
+    };
+
     try {
-      const updatedStudent = { name, email, phone };
-      await axios.put(`http://127.0.0.1:5000/update/${id}`, updatedStudent);
+      await axios.put(`http://127.0.0.1:5000/student/${id}`, updatedStudent);
+      toast.success('Student updated successfully!');
       navigate('/students');
     } catch {
-      setError('Failed to update student');
+      toast.error('Failed to update student.');
     }
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-600">{error}</div>;
-
   return (
-    <div className="p-6 bg-gray-100 rounded-xl shadow-md max-w-xl mx-auto">
-      <h2 className="text-xl font-semibold text-gray-700 mb-4">Edit Student</h2>
+    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <h2 className="text-2xl font-bold text-gray-700">Edit Student</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-gray-600 font-medium mb-1">Name</label>
-          <input
-            type="text"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+        <input className="w-full px-3 py-2 border rounded" placeholder="Student Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="w-full px-3 py-2 border rounded" placeholder="Grade" value={grade} onChange={(e) => setGrade(e.target.value)} required />
+        <input className="w-full px-3 py-2 border rounded" placeholder="Parent Phone Number" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} required />
+        <div className="flex items-center space-x-2">
+          <input type="checkbox" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} />
+          <label className="text-gray-600">Fees Paid</label>
         </div>
-
-        <div>
-          <label className="block text-gray-600 font-medium mb-1">Email</label>
-          <input
-            type="email"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div>
-          <label className="block text-gray-600 font-medium mb-1">Phone</label>
-          <input
-            type="tel"
-            className="w-full border border-gray-300 rounded px-3 py-2"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="flex justify-between items-center mt-4">
-          <button type="submit" className="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded">
-            Save Changes
-          </button>
-          <button type="button" onClick={() => navigate('/students')} className="text-gray-600 hover:text-gray-900">
-            Cancel
-          </button>
-        </div>
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+          Update Student
+        </button>
       </form>
     </div>
   );

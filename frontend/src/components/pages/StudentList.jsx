@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
-import StudentTable from "../StudentTable";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import StudentsTable from '../StudentTable';
+import { toast } from 'react-toastify';
 
-export default function StudentListPage() {
+export default function StudentList() {
   const [students, setStudents] = useState([]);
+  const [error, setError] = useState(null);
 
   const fetchStudents = async () => {
     try {
-      const res = await fetch("http://localhost:5000/students");
-      const data = await res.json();
-      setStudents(data);
-    } catch (error) {
-      console.error("Error fetching students:", error);
+      const res = await axios.get('http://127.0.0.1:5000/students');
+      setStudents(res.data);
+      setError(null);
+    } catch  {
+      toast.error('Failed to fetch students');
     }
   };
 
@@ -18,10 +21,25 @@ export default function StudentListPage() {
     fetchStudents();
   }, []);
 
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this student?')) {
+      try {
+        await axios.delete(`http://127.0.0.1:5000/delete/${id}`);
+        toast.success('Student deleted successfully');
+        fetchStudents();
+      } catch {
+        toast.error('Failed to delete student');
+      }
+    }
+  };
+
   return (
-    <div className="max-w-4xl mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Student List</h2>
-      <StudentTable students={students} onRefresh={fetchStudents} />
+    <div className="p-6 max-w-4xl mx-auto">
+      <h2 className="text-2xl font-bold text-gray-700 mb-4">Students List</h2>
+
+      {error && <p className="text-red-600 mb-4">{error}</p>}
+
+      <StudentsTable students={students} onDelete={handleDelete} />
     </div>
   );
 }

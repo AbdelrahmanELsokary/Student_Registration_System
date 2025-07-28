@@ -1,49 +1,49 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import { useNavigate } from 'react-router-dom';
 
-export default function StudentForm({ onStudentAdded }) {
+export default function StudentForm() {
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [grade, setGrade] = useState('');
+  const [parentPhone, setParentPhone] = useState('');
+  const [feesPaid, setFeesPaid] = useState(false);
+
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const studentData = { name, email, phone };
+    const newStudent = {
+      name,
+      grade,
+      guardian_phone: parentPhone,
+      fees_paid: feesPaid,
+    };
 
     try {
-      const res = await axios.post('http://localhost:5000/add', studentData);
-      console.log('Student added', res.data);
-
-      if (onStudentAdded) onStudentAdded();
-
-      setName('');
-      setEmail('');
-      setPhone('');
-    } catch (err) {
-      console.error('Axios Error:', err);
+      await axios.post('http://127.0.0.1:5000/add', newStudent);
+      toast.success('Student added successfully!');
+      navigate('/students');
+    } catch {
+      toast.error('Failed to add student.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-xl shadow-md space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        <input type="text" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={name} onChange={(e) => setName(e.target.value)} required />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input type="email" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-        <input type="text" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-      </div>
-
-      <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-200">
-        Add Student
-      </button>
-    </form>
+    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <h2 className="text-2xl font-bold text-gray-700">Add New Student</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input className="w-full px-3 py-2 border rounded" placeholder="Student Name" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="w-full px-3 py-2 border rounded" placeholder="Grade (e.g. First, Second)" value={grade} onChange={(e) => setGrade(e.target.value)} required />
+        <input className="w-full px-3 py-2 border rounded" placeholder="Parent Phone Number" value={parentPhone} onChange={(e) => setParentPhone(e.target.value)} required />
+        <div className="flex items-center space-x-2">
+          <input type="checkbox" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} />
+          <label className="text-gray-600">Fees Paid</label>
+        </div>
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+          Add Student
+        </button>
+      </form>
+    </div>
   );
 }

@@ -1,20 +1,23 @@
 import sqlite3
 
-DATABASE = 'students.db'
-
 def init_db():
-    with sqlite3.connect(DATABASE) as conn:
+    # الاتصال بقاعدة البيانات (ستُنشأ تلقائيًا إذا لم تكن موجودة)
+    with sqlite3.connect("students.db") as conn:
         cursor = conn.cursor()
+
+        # إنشاء جدول الطلاب
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
-                email TEXT NOT NULL,
-                phone TEXT NOT NULL
+                grade TEXT NOT NULL,
+                guardian_phone TEXT NOT NULL,
+                fees_paid BOOLEAN NOT NULL
             )
         ''')
-        conn.commit()
-        print("Database and 'students' table created successfully.")
 
-# شغل الدالة
-init_db()
+        conn.commit()
+        print("✅ تم إنشاء قاعدة البيانات والجدول بنجاح.")
+
+if __name__ == "__main__":
+    init_db()
