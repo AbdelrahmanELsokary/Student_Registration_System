@@ -124,23 +124,46 @@ def get_attendance_by_date(date):
         students = [dict(row) for row in cur.fetchall()]
         return jsonify(students)
 
+from datetime import datetime
+
 @app.route('/attendance/summary', methods=['GET'])
 def attendance_summary():
+    grade = request.args.get('grade')
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+
+    query = '''
+        SELECT 
+            s.id,
+            s.name,
+            s.grade,
+            SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present,
+            SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) AS absent
+        FROM students s
+        LEFT JOIN attendance a ON s.id = a.student_id
+    '''
+    filters = []
+    params = []
+
+    # فلترة بالتاريخ
+    if from_date and to_date:
+        filters.append("a.date BETWEEN ? AND ?")
+        params.extend([from_date, to_date])
+
+    # فلترة بالصف الدراسي
+    if grade and grade != 'All':
+        filters.append("s.grade = ?")
+        params.append(grade)
+
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+
+    query += " GROUP BY s.id, s.name, s.grade ORDER BY s.name"
+
     with closing(get_db()) as conn:
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT 
-                s.id,
-                s.name,
-                s.grade,
-                SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present,
-                SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) AS absent
-            FROM students s
-            LEFT JOIN attendance a ON s.id = a.student_id
-            GROUP BY s.id, s.name, s.grade
-            ORDER BY s.name
-        ''')
-        results = cursor.fetchall()
+        cur = conn.cursor()
+        cur.execute(query, params)
+        results = cur.fetchall()
         summary = [
             {
                 'id': row[0],

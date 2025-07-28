@@ -33,10 +33,12 @@ export default function Navbar() {
           >
             Attendance registration
           </Link>
-          <Link to="/attendance-summary" className="text-blue-600 hover:underline">
-  Attendance Summary
-</Link>
-
+          <Link
+            to="/attendance-summary"
+            className="bg-white text-green-600 font-semibold px-5 py-2 rounded-lg shadow hover:bg-green-100 hover:scale-105 transition-transform duration-300 w-full sm:w-auto text-center"
+          >
+            Attendance Summary
+          </Link>
         </div>
       </nav>
     </header>
