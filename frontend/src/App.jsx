@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import AddStudentPage from './components/pages/AddStudent';
 import StudentListPage from './components/pages/StudentList';
 import EditStudentForm from './components/EditStudentForm';
+
 function App() {
   return (
     <Router>
