@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/AbdelrahmanELsokary/Student_Registration_System/issues"
   },
-  "homepage": "https://github.com/AbdelrahmanELsokary/Student_Registration_System#readme"
+  "homepage": "https://github.com/AbdelrahmanELsokary/Student_Registration_System#readme",
+  "dependencies": {
+    "react-router-dom": "^7.7.1"
+  }
 }
