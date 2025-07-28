@@ -8,7 +8,9 @@ function App() {
     <Router>
       <div className="min-h-screen p-4 bg-gray-50">
         <nav className="mb-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Student System</h1>
+          <h1 className="text-2xl font-bold">
+            Student System's <br /> Mr/MUHAMED NOAMAN
+          </h1>
           <div className="space-x-4">
             <Link to="/" className="text-blue-600 hover:underline">
               Add Student
