@@ -17,7 +17,6 @@ export default function Attendance() {
 
       const res = await axios.get(url, { params });
       setStudents(res.data);
-
     } catch (error) {
       console.error('Failed to fetch attendance data:', error);
       toast.error('Failed to fetch attendance data.');
@@ -44,7 +43,6 @@ export default function Attendance() {
     }
   };
 
- 
   return (
     <div className="px-4 py-8 max-w-7xl mx-auto">
       <h2 className="text-4xl font-bold text-blue-700 mb-8 text-center">Student Attendance</h2>
@@ -111,7 +109,7 @@ export default function Attendance() {
                   <td className="border p-2">{student.grade}</td>
                   <td className="border p-2">{student.guardian_phone}</td>
                   <td className="border p-2">{student.fees_paid ? <span className="text-green-600 font-semibold">Yes</span> : <span className="text-red-500 font-semibold">No</span>}</td>
-                
+
                   <td className="border p-2">
                     {student.status === 'present' ? (
                       <span className="text-green-600 font-semibold">Present</span>
