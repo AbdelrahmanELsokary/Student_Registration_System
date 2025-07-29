@@ -9,9 +9,102 @@ CORS(app)
 
 DATABASE = 'students.db' 
 
+# دالة لإنشاء اتصال بقاعدة البيانات
 def get_db():
     return sqlite3.connect(DATABASE)
 
+# دالة لتهيئة قاعدة البيانات وإنشاء الجداول
+def init_db():
+    with closing(get_db()) as conn:
+        with conn:
+            cursor = conn.cursor()
+
+            # إنشاء جدول الطلاب (إذا لم يكن موجودًا)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS students (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    grade TEXT NOT NULL,
+                    guardian_phone TEXT,
+                    fees_paid INTEGER NOT NULL DEFAULT 0
+                )
+            ''')
+
+            # إنشاء جدول الحضور (إذا لم يكن موجودًا) بالهيكل الكامل المطلوب
+            # هذا يضمن أن أي قاعدة بيانات جديدة ستبدأ بالهيكل الصحيح
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS attendance (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    student_id INTEGER NOT NULL,
+                    date TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    daily_recitation_score INTEGER DEFAULT NULL,
+                    test_score INTEGER DEFAULT NULL,
+                    FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE,
+                    UNIQUE(student_id, date)
+                )
+            ''')
+
+            # التحقق من الأعمدة الحالية في جدول attendance
+            cursor.execute("PRAGMA table_info(attendance);")
+            columns = [col[1] for col in cursor.fetchall()]
+
+            # --- إضافة الأعمدة الجديدة (daily_recitation_score و test_score) إذا كانت مفقودة ---
+            if 'daily_recitation_score' not in columns:
+                print("جاري إضافة عمود 'daily_recitation_score' إلى جدول 'attendance'...")
+                cursor.execute("ALTER TABLE attendance ADD COLUMN daily_recitation_score INTEGER DEFAULT NULL;")
+                print("✅ تم إضافة عمود 'daily_recitation_score' بنجاح.")
+            else:
+                print("عمود 'daily_recitation_score' موجود بالفعل.")
+
+            if 'test_score' not in columns:
+                print("جاري إضافة عمود 'test_score' إلى جدول 'attendance'...")
+                cursor.execute("ALTER TABLE attendance ADD COLUMN test_score INTEGER DEFAULT NULL;")
+                print("✅ تم إضافة عمود 'test_score' بنجاح.")
+            else:
+                print("عمود 'test_score' موجود بالفعل.")
+
+            # --- إزالة عمود 'notes' القديم إذا كان موجودًا (مع الحفاظ على البيانات) ---
+            if 'notes' in columns:
+                print("جاري إزالة عمود 'notes' من جدول 'attendance' (مع الحفاظ على البيانات)...")
+
+                # حذف الجدول المؤقت لو كان موجودًا من تشغيل سابق فاشل
+                cursor.execute("DROP TABLE IF EXISTS attendance_temp;")
+
+                # 1. إنشاء جدول مؤقت جديد للـ attendance بالهيكل المطلوب (بدون 'notes' ومع الأعمدة الجديدة)
+                cursor.execute('''
+                    CREATE TABLE attendance_temp (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id INTEGER NOT NULL,
+                        date TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        daily_recitation_score INTEGER DEFAULT NULL,
+                        test_score INTEGER DEFAULT NULL,
+                        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
+                        UNIQUE(student_id, date)
+                    )
+                ''')
+
+                # 2. نسخ البيانات من جدول الـ attendance القديم للجدول الجديد
+                # هنا ننسخ فقط الأعمدة الموجودة في الجدول القديم والتي نريد الاحتفاظ بها
+                cursor.execute('''
+                    INSERT INTO attendance_temp (id, student_id, date, status, daily_recitation_score, test_score)
+                    SELECT id, student_id, date, status, daily_recitation_score, test_score FROM attendance;
+                ''')
+
+                # 3. حذف جدول الـ attendance القديم
+                cursor.execute("DROP TABLE attendance;")
+
+                # 4. إعادة تسمية الجدول الجديد ليصبح attendance
+                cursor.execute("ALTER TABLE attendance_temp RENAME TO attendance;")
+                print("✅ تم إزالة عمود 'notes' وتحديث جدول 'attendance' بنجاح، مع الحفاظ على البيانات.")
+            else:
+                print("عمود 'notes' غير موجود في جدول 'attendance'. لا حاجة للإزالة.")
+
+            conn.commit()
+            print("✅ تم إنشاء/تحديث قاعدة البيانات والجداول بنجاح.")
+
+# نقطة نهاية لجلب جميع الطلاب
 @app.route('/students', methods=['GET'])
 def get_students():
     try:
@@ -28,6 +121,7 @@ def get_students():
         print(f"An unexpected error occurred during get_students: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لجلب طالب واحد بواسطة المعرف
 @app.route('/student/<int:student_id>', methods=['GET'])
 def get_student(student_id):
     try:
@@ -46,6 +140,7 @@ def get_student(student_id):
         print(f"An unexpected error occurred during get_student: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لإضافة طالب جديد
 @app.route('/add', methods=['POST'])
 def add_student():
     data = request.get_json()
@@ -77,6 +172,7 @@ def add_student():
         print(f"An unexpected error occurred during add_student: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لتحديث بيانات طالب
 @app.route('/update/<int:student_id>', methods=['PUT'])
 def update_student(student_id):
     data = request.get_json()
@@ -107,6 +203,7 @@ def update_student(student_id):
         print(f"An unexpected error occurred during update_student: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لحذف طالب
 @app.route('/delete/<int:student_id>', methods=['DELETE'])
 def delete_student(student_id):
     try:
@@ -124,6 +221,7 @@ def delete_student(student_id):
         print(f"An unexpected error occurred during delete_student: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لجلب ملخص حضور الطلاب (إجمالي الحضور والغياب لكل طالب)
 @app.route('/students/attendance-summary', methods=['GET'])
 def get_students_attendance_summary():
     grade = request.args.get('grade') 
@@ -171,12 +269,14 @@ def get_students_attendance_summary():
         print(f"An unexpected error occurred during get_students_attendance_summary: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لتسجيل الحضور (تم تعديلها لدعم درجات التسميع والتيست)
 @app.route('/attendance', methods=['POST'])
 def mark_attendance():
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Invalid JSON data'}), 400
 
+    # تم إضافة daily_recitation_score و test_score كحقول اختيارية
     required_fields = ['student_id', 'date', 'status']
     if not all(field in data for field in required_fields):
         return jsonify({'error': 'Missing required fields'}), 400
@@ -184,6 +284,9 @@ def mark_attendance():
     student_id = data['student_id']
     date = data['date']
     status = data['status']
+    # جلب درجات التسميع والتيست، مع قيمة افتراضية None إذا لم يتم توفيرها
+    daily_recitation_score = data.get('daily_recitation_score')
+    test_score = data.get('test_score')
 
     if status not in ['present', 'absent']:
         return jsonify({'error': 'Invalid status. Must be "present" or "absent"'}), 400
@@ -191,13 +294,13 @@ def mark_attendance():
     try:
         with closing(get_db()) as conn:
             cur = conn.cursor()
-            # Delete previous attendance for the student on that date
+            # حذف سجل الحضور السابق للطالب في هذا التاريخ
             cur.execute('DELETE FROM attendance WHERE student_id = ? AND date = ?', (student_id, date))
-            # Insert new attendance record without notes
+            # إدراج سجل الحضور الجديد مع درجات التسميع والتيست
             cur.execute('''
-                INSERT INTO attendance (student_id, date, status)
-                VALUES (?, ?, ?)
-            ''', (student_id, date, status))
+                INSERT INTO attendance (student_id, date, status, daily_recitation_score, test_score)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (student_id, date, status, daily_recitation_score, test_score))
             conn.commit()
             return jsonify({'message': 'Attendance marked successfully'})
     except sqlite3.Error as e:
@@ -207,6 +310,133 @@ def mark_attendance():
         print(f"An unexpected error occurred during mark_attendance: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لتحديث درجات التسميع اليومي والامتحان لطالب معين
+@app.route('/students/<int:student_id>/scores', methods=['PUT'])
+def update_student_scores(student_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON data'}), 400
+
+    # يجب توفير التاريخ لتحديد سجل الحضور الذي سيتم تحديثه
+    date = data.get('date')
+    if not date:
+        return jsonify({'error': 'Date is required to update scores'}), 400
+
+    daily_recitation_score = data.get('daily_recitation_score')
+    test_score = data.get('test_score')
+
+    # التحقق من أن الدرجات أرقام صحيحة إذا تم توفيرها
+    if daily_recitation_score is not None and not isinstance(daily_recitation_score, (int, float)):
+        return jsonify({'error': 'daily_recitation_score must be a number'}), 400
+    if test_score is not None and not isinstance(test_score, (int, float)):
+        return jsonify({'error': 'test_score must be a number'}), 400
+
+    try:
+        with closing(get_db()) as conn:
+            cur = conn.cursor()
+            # تحديث درجات التسميع والامتحان لسجل حضور معين
+            cur.execute('''
+                UPDATE attendance
+                SET daily_recitation_score = ?, test_score = ?
+                WHERE student_id = ? AND date = ?
+            ''', (daily_recitation_score, test_score, student_id, date))
+            conn.commit()
+
+            if cur.rowcount == 0:
+                return jsonify({'message': 'Attendance record not found for student on this date or no changes made'}), 404
+            return jsonify({'message': 'Student scores updated successfully'})
+    except sqlite3.Error as e:
+        print(f"Database error during update_student_scores: {e}")
+        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred during update_student_scores: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+# نقطة نهاية جديدة: لجلب جميع سجلات الحضور (مع الدرجات) لطالب معين
+@app.route('/student/<int:student_id>/attendance-records', methods=['GET'])
+def get_student_attendance_records(student_id):
+    try:
+        with closing(get_db()) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            query = '''
+                SELECT
+                    a.id,
+                    a.date,
+                    a.status,
+                    a.daily_recitation_score,
+                    a.test_score
+                FROM attendance a
+                WHERE a.student_id = ?
+                ORDER BY a.date DESC
+            '''
+            cur.execute(query, (student_id,))
+            attendance_records = [dict(row) for row in cur.fetchall()]
+            
+            if not attendance_records:
+                # إذا لم يتم العثور على سجلات حضور، تحقق مما إذا كان الطالب موجودًا
+                cur.execute('SELECT id FROM students WHERE id = ?', (student_id,))
+                if cur.fetchone() is None:
+                    return jsonify({'error': 'Student not found'}), 404
+                else:
+                    # الطالب موجود ولكن لا توجد سجلات حضور له
+                    return jsonify([]), 200 # إرجاع قائمة فارغة بدلاً من 404
+
+            return jsonify(attendance_records)
+    except sqlite3.Error as e:
+        print(f"Database error during get_student_attendance_records: {e}")
+        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred during get_student_attendance_records: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+# نقطة نهاية جديدة: لجلب ملخص حضور طالب واحد (إجمالي الحضور والغياب ومتوسط الدرجات)
+@app.route('/student/<int:student_id>/attendance-summary', methods=['GET'])
+def get_single_student_attendance_summary(student_id):
+    try:
+        with closing(get_db()) as conn:
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            query = '''
+                SELECT
+                    SUM(CASE WHEN a.status = 'present' THEN 1 ELSE 0 END) AS present_count,
+                    SUM(CASE WHEN a.status = 'absent' THEN 1 ELSE 0 END) AS absent_count,
+                    AVG(a.daily_recitation_score) AS avg_recitation,
+                    AVG(a.test_score) AS avg_test
+                FROM attendance a
+                WHERE a.student_id = ?
+            '''
+            cur.execute(query, (student_id,))
+            summary_data = cur.fetchone()
+
+            if summary_data and (summary_data['present_count'] is not None or summary_data['absent_count'] is not None):
+                return jsonify(dict(summary_data))
+            else:
+                # إذا لم يتم العثور على سجلات حضور للطالب، أرجع قيم افتراضية
+                # أو تحقق مما إذا كان الطالب موجودًا أصلاً
+                cur.execute('SELECT id FROM students WHERE id = ?', (student_id,))
+                if cur.fetchone() is None:
+                    return jsonify({'error': 'Student not found'}), 404
+                else:
+                    # الطالب موجود ولكن لا توجد سجلات حضور له، أرجع ملخصًا فارغًا
+                    return jsonify({
+                        'present_count': 0,
+                        'absent_count': 0,
+                        'avg_recitation': None,
+                        'avg_test': None
+                    }), 200
+
+    except sqlite3.Error as e:
+        print(f"Database error during get_single_student_attendance_summary: {e}")
+        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred during get_single_student_attendance_summary: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
+
+# نقطة نهاية لجلب الحضور حسب التاريخ (تم تعديلها لاسترجاع درجات التسميع والتيست)
 @app.route('/attendance/date/<date>', methods=['GET'])
 def get_attendance_by_date(date):
     grade = request.args.get('grade') 
@@ -220,7 +450,9 @@ def get_attendance_by_date(date):
             base_query = '''
                 SELECT
                     s.id, s.name, s.grade, s.guardian_phone, s.fees_paid,
-                    a.status
+                    a.status,
+                    a.daily_recitation_score, -- عمود جديد
+                    a.test_score              -- عمود جديد
                 FROM students s
                 LEFT JOIN attendance a ON s.id = a.student_id AND a.date = ?
             '''
@@ -237,6 +469,8 @@ def get_attendance_by_date(date):
 
             if filters:
                 base_query += " WHERE " + " AND ".join(filters)
+            
+            base_query += " ORDER BY s.name" # إضافة ترتيب للنتائج
 
             cur.execute(base_query, params)
             students = [dict(row) for row in cur.fetchall()] 
@@ -248,6 +482,7 @@ def get_attendance_by_date(date):
         print(f"An unexpected error occurred during get_attendance_by_date: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لجلب ملخص الحضور العام
 @app.route('/attendance/summary', methods=['GET'])
 def get_attendance_summary():
     date = request.args.get('date')
@@ -304,6 +539,7 @@ def get_attendance_summary():
         print(f"An unexpected error occurred during get_attendance_summary: {e}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
+# نقطة نهاية لجلب ملخص الحضور لكل طالب
 @app.route('/attendance/summary/students', methods=['GET'])
 def get_attendance_summary_per_student():
     grade = request.args.get('grade', None)
@@ -317,12 +553,23 @@ def get_attendance_summary_per_student():
         GROUP BY s.id, s.name, s.grade
         ORDER BY s.name
     """
-    with closing(sqlite3.connect(DATABASE)) as conn:
-        conn.row_factory = sqlite3.Row
-        with conn:
-            cur = conn.execute(query, {"grade": grade})
-            result = [dict(row) for row in cur.fetchall()]
-            return jsonify(result)
+    try:
+        with closing(sqlite3.connect(DATABASE)) as conn:
+            conn.row_factory = sqlite3.Row
+            with conn:
+                cur = conn.execute(query, {"grade": grade})
+                result = [dict(row) for row in cur.fetchall()]
+                return jsonify(result)
+    except sqlite3.Error as e:
+        print(f"Database error during get_attendance_summary_per_student: {e}")
+        return jsonify({'error': 'Database operation failed', 'details': str(e)}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred during get_attendance_summary_per_student: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
 
 if __name__ == '__main__':
+    # قم بتشغيل init_db() مرة واحدة فقط لإنشاء أو تحديث الجداول
+    # بعد تشغيلها بنجاح، يمكنك التعليق عليها لمنع إعادة الإنشاء في كل مرة
+    init_db() 
     app.run(debug=True, host='127.0.0.1', port=5000)

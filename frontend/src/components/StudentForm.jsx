@@ -2,8 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 export default function StudentForm() {
+  const { t } = useTranslation();
+
   const [name, setName] = useState('');
   const [grade, setGrade] = useState('');
   const [guardianPhone, setGuardianPhone] = useState('');
@@ -23,7 +26,7 @@ export default function StudentForm() {
     e.preventDefault();
 
     if (!isNameValid || !isPhoneValid || !grade) {
-      toast.error('Please fill all fields correctly.');
+      toast.error(t('toast.fillAllFields'));
       return;
     }
 
@@ -36,23 +39,23 @@ export default function StudentForm() {
 
     try {
       await axios.post('http://127.0.0.1:5000/add', newStudent);
-      toast.success('Student added successfully!');
+      toast.success(t('toast.studentAddedSuccess'));
       navigate('/students');
     } catch (err) {
-      toast.error('Failed to add student.');
+      toast.error(t('toast.addStudentFailed'));
       console.error(err);
     }
   };
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6">
-      <h2 className="text-2xl font-bold text-gray-700 text-center">Add New Student</h2>
+      <h2 className="text-2xl font-bold text-gray-700 text-center">{t('studentForm.title')}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">Student Name</label>
+          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.studentName')}</label>
           <input
             type="text"
-            placeholder="Enter student name"
+            placeholder={t('studentForm.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => setTouchedName(true)}
@@ -61,31 +64,31 @@ export default function StudentForm() {
               !isNameValid && touchedName ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-green-500'
             }`}
           />
-          {!isNameValid && touchedName && <p className="text-sm text-red-500 mt-1">Name must be at least 2 characters.</p>}
+          {!isNameValid && touchedName && <p className="text-sm text-red-500 mt-1">{t('studentForm.nameValidation')}</p>}
         </div>
 
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">Grade</label>
+          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.grade')}</label>
           <select
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
             required
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           >
-            <option value="">-- Select Grade --</option>
+            <option value="">{t('studentForm.selectGradePlaceholder')}</option>
             {gradeOptions.map((g) => (
               <option key={g} value={g}>
-                {g}
+                {t(`grades.${g.toLowerCase().replace(/ /g, '')}`)}
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">Parent Phone Number</label>
+          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.parentPhoneNumber')}</label>
           <input
             type="tel"
-            placeholder="e.g. 01012345678"
+            placeholder={t('studentForm.phonePlaceholder')}
             value={guardianPhone}
             onChange={(e) => setGuardianPhone(e.target.value)}
             onBlur={() => setTouchedPhone(true)}
@@ -95,18 +98,18 @@ export default function StudentForm() {
               !isPhoneValid && touchedPhone ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-green-500'
             }`}
           />
-          {!isPhoneValid && touchedPhone && <p className="text-sm text-red-500 mt-1">Enter a valid Egyptian phone number.</p>}
+          {!isPhoneValid && touchedPhone && <p className="text-sm text-red-500 mt-1">{t('studentForm.phoneValidation')}</p>}
         </div>
 
         <div className="flex items-center space-x-2">
           <input type="checkbox" id="feesPaid" checked={feesPaid} onChange={(e) => setFeesPaid(e.target.checked)} className="accent-green-600" />
           <label htmlFor="feesPaid" className="text-gray-700">
-            Fees Paid
+            {t('studentForm.feesPaid')}
           </label>
         </div>
 
         <button type="submit" className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition duration-200 font-semibold">
-          Add Student
+          {t('studentForm.addStudentButton')}
         </button>
       </form>
     </div>
