@@ -1,11 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AttendanceStats from './components/pages/AttendanceStats';
 import StudentListPage from './components/pages/StudentList';
 import AddStudentPage from './components/pages/AddStudent';
 import EditStudentForm from './components/EditStudentForm';
 import Attendance from './components/AttendanceForm';
 import Navbar from './components/layout/Header';
-import AttendanceStats from './components/pages/AttendanceStats';
-
 function App() {
   return (
     <Router>
