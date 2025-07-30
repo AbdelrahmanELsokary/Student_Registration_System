@@ -1,46 +1,72 @@
-import { FaEdit, FaTrash, FaSearch, FaSyncAlt, FaFileCsv } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaSearch, FaSyncAlt, FaFileCsv, FaEye } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from 'react-i18next'; // تأكد من استيراد useTranslation
 
 export default function StudentsTable({ students, onDelete, onRefresh }) {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation(); // تهيئة useTranslation للوصول إلى دالة الترجمة ومعلومات اللغة
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGrade, setSelectedGrade] = useState('All');
-  const isRTL = i18n.language === 'ar';
+  const [selectedGrade, setSelectedGrade] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // حالة التحميل لزر التحديث
+  const isRTL = i18n.language === 'ar'; // تحديد اتجاه الواجهة بناءً على اللغة الحالية
 
+  // الحصول على جميع الصفوف الفريدة لخيارات الفلترة
   const allGrades = [...new Set(students.map((s) => s.grade))];
 
+  // تصفية الطلاب بناءً على مصطلح البحث والصف المختار
   const filteredStudents = students.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesGrade = selectedGrade === 'All' || s.grade === selectedGrade;
+    const matchesGrade = selectedGrade === '' || s.grade === selectedGrade;
     return matchesSearch && matchesGrade;
   });
 
+  // تجميع الطلاب حسب الصف لعرضهم في جداول منفصلة
   const groupedStudents = filteredStudents.reduce((groups, student) => {
-    const grade = student.grade || 'Unknown';
+    const grade = student.grade || 'unknown'; // التعامل مع الصفوف غير المعروفة
     if (!groups[grade]) groups[grade] = [];
     groups[grade].push(student);
     return groups;
   }, {});
 
+  // دالة لتصدير البيانات المفلترة إلى ملف CSV
   const exportToCSV = () => {
+    // رؤوس الجدول لملف CSV، مترجمة
     const headers = [t('studentsTable.tableName'), t('studentsTable.tableGrade'), t('studentsTable.tableParentPhone'), t('studentsTable.tableFeesPaid')];
-    const rows = filteredStudents.map((s) => [s.name, s.grade, s.guardian_phone, s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no')]);
+    // تحويل بيانات الطلاب إلى صفوف CSV، مع ترجمة حالة دفع المصروفات
+    const rows = filteredStudents.map((s) => [
+      s.name,
+      // ترجمة الصف هنا أيضًا لملف CSV
+      t(`grades.${s.grade.toLowerCase().replace(/ /g, '')}`),
+      s.guardian_phone,
+      s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no'), // ترجمة "نعم" / "لا"
+    ]);
+
+    // إنشاء محتوى CSV وتشفيره
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    const filename = selectedGrade === 'All' ? 'students.csv' : `students_${selectedGrade}.csv`;
+    // تحديد اسم الملف بناءً على الصف المختار
+    const filename = selectedGrade === '' ? 'students.csv' : `students_${selectedGrade}.csv`;
     link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // دالة لمعالجة تحديث البيانات مع حالة التحميل
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      await onRefresh(); // استدعاء دالة التحديث الممررة من المكون الأب
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-4" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Summary cards */}
+      {/* بطاقات الملخص الإحصائي */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-blue-100 text-blue-800 p-4 rounded-lg shadow text-center">
           <h4 className="text-sm font-semibold">{t('studentsTable.totalStudents')}</h4>
@@ -56,7 +82,7 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         </div>
       </div>
 
-      {/* Search & Filters */}
+      {/* قسم البحث والفلترة والأزرار */}
       <div className={`mb-4 flex flex-col sm:flex-row sm:items-center ${isRTL ? 'sm:space-x-reverse' : ''} sm:space-x-2 space-y-2 sm:space-y-0`}>
         <div className="relative w-full sm:w-1/3">
           <input
@@ -74,27 +100,40 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
           onChange={(e) => setSelectedGrade(e.target.value)}
           className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          <option value="All">{t('studentsTable.allGrades')}</option>
+          <option value="">{t('studentsTable.allGrades')}</option>
           {allGrades.map((g) => (
             <option key={g} value={g}>
+              {/* ترجمة الصف في قائمة الفلترة */}
               {t(`grades.${g.toLowerCase().replace(/ /g, '')}`)}
             </option>
           ))}
         </select>
 
-        <button onClick={onRefresh} className="flex items-center bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-md text-sm shadow-sm">
+        <button
+          onClick={handleRefresh}
+          disabled={isLoading}
+          className={`flex items-center px-4 py-2 rounded-md text-sm shadow-sm transition-transform hover:scale-105
+            bg-yellow-400 hover:bg-yellow-500 text-white ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          aria-label={t('studentsTable.refresh')}
+          title={t('studentsTable.refresh')}
+        >
           {isRTL ? (
             <>
-              {t('studentsTable.refresh')} <FaSyncAlt className="ml-2" />
+              {t('studentsTable.refresh')} <FaSyncAlt className={`ml-2 ${isLoading ? 'animate-spin' : ''}`} />
             </>
           ) : (
             <>
-              <FaSyncAlt className="mr-2" /> {t('studentsTable.refresh')}
+              <FaSyncAlt className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} /> {t('studentsTable.refresh')}
             </>
           )}
         </button>
 
-        <button onClick={exportToCSV} className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm shadow-sm">
+        <button
+          onClick={exportToCSV}
+          className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm shadow-sm transition-transform hover:scale-105"
+          aria-label={t('studentsTable.export')}
+          title={t('studentsTable.export')}
+        >
           {isRTL ? (
             <>
               {t('studentsTable.export')} <FaFileCsv className="ml-2" />
@@ -107,19 +146,31 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         </button>
       </div>
 
-      {/* Table */}
+      {/* عرض الطلاب أو رسالة لا يوجد طلاب مع زر مسح الفلاتر */}
       {Object.keys(groupedStudents).length === 0 ? (
-        <div className="text-center text-gray-500 py-10">{t('studentsTable.noStudentsFound')}</div>
+        <div className="text-center text-gray-500 py-10">
+          {t('studentsTable.noStudentsFound')}
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedGrade('');
+            }}
+            className="ml-4 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
+          >
+            {t('studentsTable.resetFilters')}
+          </button>
+        </div>
       ) : (
         Object.entries(groupedStudents).map(([grade, studentsInGrade]) => (
           <div key={grade} className="mb-8">
             <h3 className="text-lg font-semibold mb-2 text-blue-800">
               {t('studentsTable.gradePrefix')} {t(`grades.${grade.toLowerCase().replace(/ /g, '')}`)}
             </h3>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200 divide-y divide-gray-300 shadow-md rounded-lg">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
+              <table className="min-w-full border-collapse border border-gray-300 divide-y divide-gray-300">
                 <thead className="bg-blue-100">
                   <tr>
+                    {/* رؤوس الجدول - يتم ترجمتها باستخدام دالة t() */}
                     <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableName')}</th>
                     <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableGrade')}</th>
                     <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableParentPhone')}</th>
@@ -138,28 +189,30 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
                           {s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no')}
                         </span>
                       </td>
-                      <td className={`px-4 py-2 text-center ${isRTL ? 'space-x-reverse space-x-2' : 'space-x-2'}`}>
-                        <Link to={`/edit/${s.id}`} className="inline-flex items-center bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs">
-                          {isRTL ? (
-                            <>
-                              {t('studentsTable.edit')} <FaEdit className="ml-1" />
-                            </>
-                          ) : (
-                            <>
-                              <FaEdit className="mr-1" /> {t('studentsTable.edit')}
-                            </>
-                          )}
+                      <td className="px-4 py-2 text-center flex flex-wrap justify-center gap-2">
+                        <Link
+                          to={`/view/${s.id}`}
+                          className="inline-flex items-center bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-md text-xs transition-transform hover:scale-110"
+                          title={t('studentsTable.view')}
+                          aria-label={`${t('studentsTable.view')} ${s.name}`}
+                        >
+                          <FaEye className="mr-1" /> {t('studentsTable.view')}
                         </Link>
-                        <button onClick={() => onDelete(s.id)} className="inline-flex items-center bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs">
-                          {isRTL ? (
-                            <>
-                              {t('studentsTable.delete')} <FaTrash className="ml-1" />
-                            </>
-                          ) : (
-                            <>
-                              <FaTrash className="mr-1" /> {t('studentsTable.delete')}
-                            </>
-                          )}
+                        <Link
+                          to={`/edit/${s.id}`}
+                          className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md text-xs transition-transform hover:scale-110"
+                          title={t('studentsTable.edit')}
+                          aria-label={`${t('studentsTable.edit')} ${s.name}`}
+                        >
+                          <FaEdit className="mr-1" /> {t('studentsTable.edit')}
+                        </Link>
+                        <button
+                          onClick={() => onDelete(s.id)}
+                          className="inline-flex items-center bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-xs transition-transform hover:scale-110"
+                          title={t('studentsTable.delete')}
+                          aria-label={`${t('studentsTable.delete')} ${s.name}`}
+                        >
+                          <FaTrash className="mr-1" /> {t('studentsTable.delete')}
                         </button>
                       </td>
                     </tr>

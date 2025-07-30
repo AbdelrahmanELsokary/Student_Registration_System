@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'; 
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
@@ -6,11 +6,15 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 
 export default function AttendanceStats() {
   const { t, i18n } = useTranslation();
+
   const [summary, setSummary] = useState(null);
   const [studentsSummary, setStudentsSummary] = useState([]);
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [selectedGrade, setSelectedGrade] = useState('');
+  const [selectedGrade, setSelectedGrade] = useState(''); // فارغ = كل الدرجات
 
+  const gradeOptions = ['First Preparatory', 'Second Preparatory', 'Third Preparatory', 'First Secondary', 'Second Secondary', 'Third Secondary'];
+
+  // جلب ملخص الحضور حسب التاريخ والصف المختار
   const fetchSummary = useCallback(
     async (date, grade = '') => {
       try {
@@ -26,24 +30,26 @@ export default function AttendanceStats() {
     [t]
   );
 
+  // جلب ملخص الحضور لكل طالب حسب الصف المختار
   const fetchStudentsSummary = useCallback(
     async (grade = '') => {
       try {
-        const res = await axios.get(`http://127.0.0.1:5000/attendance/summary/students`, {
-          params: grade ? { grade } : {},
-        });
+        const params = grade ? { grade } : {};
+        const res = await axios.get(`http://127.0.0.1:5000/attendance/summary/students`, { params });
         setStudentsSummary(res.data);
       } catch {
         toast.error(t('toast.studentsSummaryError'));
       }
     },
     [t]
-  ); 
+  );
+
   useEffect(() => {
     fetchSummary(selectedDate, selectedGrade);
     fetchStudentsSummary(selectedGrade);
   }, [selectedDate, selectedGrade, fetchSummary, fetchStudentsSummary]);
 
+  // بيانات الرسم البياني الدائري
   const pieChartData = summary
     ? [
         { name: t('chart.present'), value: summary.present_count },
@@ -51,14 +57,13 @@ export default function AttendanceStats() {
       ]
     : [];
 
-  const COLORS = ['#10B981', '#EF4444']; // Green & Red
-
-  const gradeOptions = ['First Preparatory', 'Second Preparatory', 'Third Preparatory', 'First Secondary', 'Second Secondary', 'Third Secondary'];
+  const COLORS = ['#10B981', '#EF4444']; // أخضر و أحمر
 
   return (
     <div className="px-4 py-8 max-w-7xl mx-auto space-y-10" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       <h2 className="text-3xl sm:text-4xl font-bold text-center text-blue-700">{t('stats.title')}</h2>
 
+      {/* الفلاتر */}
       <div className="flex flex-wrap items-center justify-center gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">{t('stats.selectDate')}:</label>
@@ -77,6 +82,7 @@ export default function AttendanceStats() {
         </div>
       </div>
 
+      {/* إحصائيات عامة */}
       {summary ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-xl shadow border border-gray-200 text-center">
@@ -100,6 +106,7 @@ export default function AttendanceStats() {
         <p className="text-center text-gray-500">{t('loading')}</p>
       )}
 
+      {/* رسم بياني دائري */}
       <div className="bg-white p-6 rounded-xl shadow border border-gray-200">
         <h3 className="text-xl font-semibold text-center text-gray-800 mb-4">{t('stats.pieChartTitle')}</h3>
         {summary?.present_count > 0 || summary?.absent_count > 0 ? (
@@ -119,6 +126,7 @@ export default function AttendanceStats() {
         )}
       </div>
 
+      {/* جدول ملخص حضور الطلاب */}
       <div className="bg-white p-6 rounded-xl shadow border border-gray-200 overflow-x-auto">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">{t('stats.studentsSummaryTitle')}</h3>
         <table className="min-w-full border-collapse border border-gray-300 text-sm text-center">

@@ -16,11 +16,11 @@ function App() {
         <div className="min-h-screen p-4 bg-gray-50">
           <Navbar />
           <Routes>
-            <Route path="/frontend/src/components/StudentForm.jsx" element={<AddStudentPage />} />
             <Route path="/students/:id/details" element={<StudentDetails />} />
             <Route path="/attendance-summary" element={<AttendanceStats />} />
-            <Route path="/edit/:id" element={<EditStudentForm />} />
+            <Route path="/add-student" element={<AddStudentPage />} />
             <Route path="/students" element={<StudentListPage />} />
+            <Route path="/edit/:id" element={<EditStudentForm />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/" element={<AddStudentPage />} />
           </Routes>

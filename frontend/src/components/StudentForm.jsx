@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
@@ -22,54 +22,69 @@ export default function StudentForm() {
   const isNameValid = name.trim().length >= 2;
   const isPhoneValid = /^01[0125][0-9]{8}$/.test(guardianPhone);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    if (!isNameValid || !isPhoneValid || !grade) {
-      toast.error(t('toast.fillAllFields'));
-      return;
-    }
+      if (!isNameValid || !isPhoneValid || !grade) {
+        toast.error(t('toast.fillAllFields'));
+        return;
+      }
 
-    const newStudent = {
-      name,
-      grade,
-      guardian_phone: guardianPhone,
-      fees_paid: feesPaid,
-    };
+      const newStudent = {
+        name,
+        grade,
+        guardian_phone: guardianPhone,
+        fees_paid: feesPaid,
+      };
 
-    try {
-      await axios.post('http://127.0.0.1:5000/add', newStudent);
-      toast.success(t('toast.studentAddedSuccess'));
-      navigate('/students');
-    } catch (err) {
-      toast.error(t('toast.addStudentFailed'));
-      console.error(err);
-    }
-  };
+      try {
+        await axios.post('http://127.0.0.1:5000/add', newStudent);
+        toast.success(t('toast.studentAddedSuccess'));
+        navigate('/students');
+      } catch (err) {
+        toast.error(t('toast.addStudentFailed'));
+        console.error(err);
+      }
+    },
+    [name, grade, guardianPhone, feesPaid, isNameValid, isPhoneValid, t, navigate]
+  );
 
   return (
     <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-md space-y-6">
       <h2 className="text-2xl font-bold text-gray-700 text-center">{t('studentForm.title')}</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.studentName')}</label>
+          <label htmlFor="name" className="block mb-1 text-gray-700 font-medium">
+            {t('studentForm.studentName')}
+          </label>
           <input
+            id="name"
             type="text"
             placeholder={t('studentForm.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             onBlur={() => setTouchedName(true)}
             required
+            aria-invalid={!isNameValid && touchedName}
+            aria-describedby="name-error"
             className={`w-full px-4 py-2.5 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
               !isNameValid && touchedName ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-green-500'
             }`}
           />
-          {!isNameValid && touchedName && <p className="text-sm text-red-500 mt-1">{t('studentForm.nameValidation')}</p>}
+          {!isNameValid && touchedName && (
+            <p id="name-error" className="text-sm text-red-500 mt-1">
+              {t('studentForm.nameValidation')}
+            </p>
+          )}
         </div>
 
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.grade')}</label>
+          <label htmlFor="grade" className="block mb-1 text-gray-700 font-medium">
+            {t('studentForm.grade')}
+          </label>
           <select
+            id="grade"
             value={grade}
             onChange={(e) => setGrade(e.target.value)}
             required
@@ -85,8 +100,11 @@ export default function StudentForm() {
         </div>
 
         <div>
-          <label className="block mb-1 text-gray-700 font-medium">{t('studentForm.parentPhoneNumber')}</label>
+          <label htmlFor="guardianPhone" className="block mb-1 text-gray-700 font-medium">
+            {t('studentForm.parentPhoneNumber')}
+          </label>
           <input
+            id="guardianPhone"
             type="tel"
             placeholder={t('studentForm.phonePlaceholder')}
             value={guardianPhone}
@@ -94,11 +112,17 @@ export default function StudentForm() {
             onBlur={() => setTouchedPhone(true)}
             pattern="^01[0125][0-9]{8}$"
             required
+            aria-invalid={!isPhoneValid && touchedPhone}
+            aria-describedby="phone-error"
             className={`w-full px-4 py-2.5 border rounded-lg shadow-sm focus:outline-none focus:ring-2 ${
               !isPhoneValid && touchedPhone ? 'border-red-400 focus:ring-red-400' : 'border-gray-300 focus:ring-green-500'
             }`}
           />
-          {!isPhoneValid && touchedPhone && <p className="text-sm text-red-500 mt-1">{t('studentForm.phoneValidation')}</p>}
+          {!isPhoneValid && touchedPhone && (
+            <p id="phone-error" className="text-sm text-red-500 mt-1">
+              {t('studentForm.phoneValidation')}
+            </p>
+          )}
         </div>
 
         <div className="flex items-center space-x-2">
@@ -108,7 +132,13 @@ export default function StudentForm() {
           </label>
         </div>
 
-        <button type="submit" className="w-full bg-green-600 text-white px-4 py-2.5 rounded-lg hover:bg-green-700 transition duration-200 font-semibold">
+        <button
+          type="submit"
+          disabled={!isNameValid || !isPhoneValid || !grade}
+          className={`w-full px-4 py-2.5 rounded-lg font-semibold transition duration-200 ${
+            !isNameValid || !isPhoneValid || !grade ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
+        >
           {t('studentForm.addStudentButton')}
         </button>
       </form>
