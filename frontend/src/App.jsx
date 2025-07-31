@@ -18,6 +18,7 @@ function App() {
           <Routes>
             <Route path="/students/:id/details" element={<StudentDetails />} />
             <Route path="/attendance-summary" element={<AttendanceStats />} />
+            <Route path="/edit-student/:id" element={<EditStudentForm />} />
             <Route path="/add-student" element={<AddStudentPage />} />
             <Route path="/students" element={<StudentListPage />} />
             <Route path="/edit/:id" element={<EditStudentForm />} />
