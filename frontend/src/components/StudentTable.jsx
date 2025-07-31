@@ -1,18 +1,19 @@
-import { FaEdit, FaTrash, FaSearch, FaSyncAlt, FaFileCsv, FaEye } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaSearch, FaSyncAlt, FaFileCsv, FaEye, FaPlus } from 'react-icons/fa'; // Added FaPlus icon
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next'; // تأكد من استيراد useTranslation
+import { useTranslation } from 'react-i18next';
 
 export default function StudentsTable({ students, onDelete, onRefresh }) {
-  const { t, i18n } = useTranslation(); // تهيئة useTranslation للوصول إلى دالة الترجمة ومعلومات اللغة
+  const { t, i18n } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // حالة التحميل لزر التحديث
-  const isRTL = i18n.language === 'ar'; // تحديد اتجاه الواجهة بناءً على اللغة الحالية
+  const [isLoading, setIsLoading] = useState(false);
+  const isRTL = i18n.language === 'ar';
 
   // Define the fixed list of grade options
   const gradeOptions = ['First Preparatory', 'Second Preparatory', 'Third Preparatory', 'First Secondary', 'Second Secondary', 'Third Secondary'];
 
+  // Filter students based on search term and selected grade
   const filteredStudents = (students || []).filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGrade = selectedGrade === '' || s.grade === selectedGrade;
@@ -22,7 +23,7 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
   // Group students by their actual grade for display in separate tables
   const groupedStudents = filteredStudents.reduce((groups, student) => {
     // Use the student's actual grade for grouping. If null/undefined, use a placeholder string.
-    const groupKey = student.grade || 'unspecified'; // Use 'unspecified' as a consistent key for unknown grades
+    const groupKey = student.grade || 'unspecified';
     if (!groups[groupKey]) groups[groupKey] = [];
     groups[groupKey].push(student);
     return groups;
@@ -35,10 +36,10 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
     // Convert student data to CSV rows, with translated fee payment status
     const rows = filteredStudents.map((s) => [
       s.name,
-      // Translate the grade for CSV. If not in gradeOptions, default to 'unknown' for consistency in CSV.
-      t(`grades.${(s.grade && gradeOptions.includes(s.grade) ? s.grade : 'unknown').toLowerCase().replace(/ /g, '')}`),
+      // Corrected logic: Translate if known grade, otherwise use raw grade or 'unknown' fallback
+      s.grade && gradeOptions.includes(s.grade) ? t(`grades.${s.grade.toLowerCase().replace(/ /g, '')}`) : s.grade ? s.grade : t('studentsTable.unknownGrade'),
       s.guardian_phone,
-      s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no'), // Translate "Yes" / "No"
+      s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no'),
     ]);
 
     // Create CSV content and encode it
@@ -85,26 +86,24 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
       {/* Search, Filter, and Buttons Section */}
       <div className={`mb-4 flex flex-col sm:flex-row sm:items-center ${isRTL ? 'sm:space-x-reverse' : 'sm:space-x-2'} space-y-2 sm:space-y-0`}>
         <div className="relative w-full sm:w-1/3 min-w-[150px]">
-          {' '}
-          {/* Added min-w for better responsiveness */}
           <input
             type="search"
-            id="student-search" // Added ID for accessibility
+            id="student-search"
             placeholder={t('studentsTable.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={`w-full ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500`}
-            aria-label={t('studentsTable.searchPlaceholder')} // Added aria-label
+            aria-label={t('studentsTable.searchPlaceholder')}
           />
-          <FaSearch className={`absolute top-3 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`} />
+          <FaSearch className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'right-3' : 'left-3'} text-gray-400`} />
         </div>
 
         <select
-          id="grade-filter" // Added ID for accessibility
+          id="grade-filter"
           value={selectedGrade}
           onChange={(e) => setSelectedGrade(e.target.value)}
-          className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]" // Added min-w
-          aria-label={t('studentsTable.selectGrade')} // Added aria-label
+          className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[150px]"
+          aria-label={t('studentsTable.selectGrade')}
         >
           <option value="">{t('studentsTable.allGrades')}</option>
           {gradeOptions.map((g) => (
@@ -113,6 +112,25 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
             </option>
           ))}
         </select>
+
+        {/* New "Add Student" button */}
+        <Link
+          to="/add"
+          className="flex items-center justify-center px-4 py-2 rounded-md text-sm shadow-sm transition-transform hover:scale-105
+            bg-blue-600 hover:bg-blue-700 text-white"
+          aria-label={t('studentsTable.addStudent')}
+          title={t('studentsTable.addStudent')}
+        >
+          {isRTL ? (
+            <>
+              {t('studentsTable.addStudent')} <FaPlus className="mr-2" />
+            </>
+          ) : (
+            <>
+              <FaPlus className="mr-2" /> {t('studentsTable.addStudent')}
+            </>
+          )}
+        </Link>
 
         <button
           onClick={handleRefresh}
@@ -124,7 +142,7 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         >
           {isRTL ? (
             <>
-              {t('studentsTable.refresh')} <FaSyncAlt className={`ml-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {t('studentsTable.refresh')} <FaSyncAlt className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} /> {/* Adjusted margin for RTL */}
             </>
           ) : (
             <>
@@ -141,7 +159,7 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
         >
           {isRTL ? (
             <>
-              {t('studentsTable.export')} <FaFileCsv className="ml-2" />
+              {t('studentsTable.export')} <FaFileCsv className="mr-2" /> {/* Adjusted margin for RTL */}
             </>
           ) : (
             <>
@@ -168,37 +186,36 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
       ) : (
         Object.entries(groupedStudents).map(([gradeKey, studentsInGrade]) => (
           <div key={gradeKey} className="mb-8">
-            <h3 className="text-lg font-semibold mb-2 text-blue-800">
+            <h3 className={`text-lg font-semibold mb-2 text-blue-800 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t('studentsTable.gradePrefix')}{' '}
               {
                 // Display the translated grade if it's a known option,
                 // otherwise display the raw gradeKey or 'Unknown Grade' if unspecified
-                gradeOptions.includes(gradeKey) ? t(`grades.${gradeKey.toLowerCase().replace(/ /g, '')}`) : gradeKey === 'unspecified' ? t('studentsTable.unknownGrade') : gradeKey // Display the raw grade (e.g., "Grade 4") if it's not a predefined option but exists
+                gradeOptions.includes(gradeKey) ? t(`grades.${gradeKey.toLowerCase().replace(/ /g, '')}`) : gradeKey === 'unspecified' ? t('studentsTable.unknownGrade') : gradeKey
               }
             </h3>
             <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-md">
               <table className="min-w-full border-collapse border border-gray-300 divide-y divide-gray-300">
                 <thead className="bg-blue-100">
                   <tr>
-                    {/* Table Headers - translated using t() function */}
-                    <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableName')}</th>
-                    <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableGrade')}</th>
-                    <th className="px-4 py-2 text-left text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableParentPhone')}</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-700 border-r border-gray-300">{t('studentsTable.tableFeesPaid')}</th>
+                    {/* Table Headers - translated using t() function and aligned based on RTL */}
+                    <th className={`px-4 py-2 text-sm font-semibold text-gray-700 border-r border-gray-300 ${isRTL ? 'text-right' : 'text-left'}`}>{t('studentsTable.tableName')}</th>
+                    <th className={`px-4 py-2 text-sm font-semibold text-gray-700 border-r border-gray-300 ${isRTL ? 'text-right' : 'text-left'}`}>{t('studentsTable.tableGrade')}</th>
+                    <th className={`px-4 py-2 text-sm font-semibold text-gray-700 border-r border-gray-300 ${isRTL ? 'text-right' : 'text-left'}`}>{t('studentsTable.tableParentPhone')}</th>
+                    <th className={`px-4 py-2 text-sm font-semibold text-gray-700 border-r border-gray-300 ${isRTL ? 'text-right' : 'text-left'}`}>{t('studentsTable.tableFeesPaid')}</th>
                     <th className="px-4 py-2 text-center text-sm font-semibold text-gray-700">{t('studentsTable.tableActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {studentsInGrade.map((s) => (
                     <tr key={s.id} className="hover:bg-gray-50 transition">
-                      <td className="px-4 py-2 border-r">{s.name}</td>
-                      <td className="px-4 py-2 border-r">
-                        {/* Display the translated grade if it's a known option,
-                            otherwise display the raw grade or 'Unknown Grade' if unspecified */}
-                        {s.grade && gradeOptions.includes(s.grade) ? t(`grades.${s.grade.toLowerCase().replace(/ /g, '')}`) : s.grade || t('studentsTable.unknownGrade')}
+                      <td className={`px-4 py-2 border-r ${isRTL ? 'text-right' : 'text-left'}`}>{s.name}</td>
+                      <td className={`px-4 py-2 border-r ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {/* Corrected logic: Translate if known grade, otherwise use raw grade or 'unknown' fallback */}
+                        {s.grade && gradeOptions.includes(s.grade) ? t(`grades.${s.grade.toLowerCase().replace(/ /g, '')}`) : s.grade ? s.grade : t('studentsTable.unknownGrade')}
                       </td>
-                      <td className="px-4 py-2 border-r">{s.guardian_phone}</td>
-                      <td className="px-4 py-2 text-center border-r">
+                      <td className={`px-4 py-2 border-r ${isRTL ? 'text-right' : 'text-left'}`}>{s.guardian_phone}</td>
+                      <td className={`px-4 py-2 text-center border-r ${isRTL ? 'text-right' : 'text-left'}`}>
                         <span className={`inline-block px-2 py-1 text-xs rounded-full font-medium ${s.fees_paid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                           {s.fees_paid ? t('studentsTable.yes') : t('studentsTable.no')}
                         </span>
@@ -210,7 +227,15 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
                           title={t('studentsTable.view')}
                           aria-label={`${t('studentsTable.view')} ${s.name}`}
                         >
-                          <FaEye className="mr-1" /> {t('studentsTable.view')}
+                          {isRTL ? (
+                            <>
+                              {t('studentsTable.view')} <FaEye className="mr-1" />
+                            </>
+                          ) : (
+                            <>
+                              <FaEye className="mr-1" /> {t('studentsTable.view')}
+                            </>
+                          )}
                         </Link>
                         <Link
                           to={`/edit/${s.id}`}
@@ -218,7 +243,15 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
                           title={t('studentsTable.edit')}
                           aria-label={`${t('studentsTable.edit')} ${s.name}`}
                         >
-                          <FaEdit className="mr-1" /> {t('studentsTable.edit')}
+                          {isRTL ? (
+                            <>
+                              {t('studentsTable.edit')} <FaEdit className="mr-1" />
+                            </>
+                          ) : (
+                            <>
+                              <FaEdit className="mr-1" /> {t('studentsTable.edit')}
+                            </>
+                          )}
                         </Link>
                         <button
                           onClick={() => onDelete(s.id)}
@@ -226,7 +259,15 @@ export default function StudentsTable({ students, onDelete, onRefresh }) {
                           title={t('studentsTable.delete')}
                           aria-label={`${t('studentsTable.delete')} ${s.name}`}
                         >
-                          <FaTrash className="mr-1" /> {t('studentsTable.delete')}
+                          {isRTL ? (
+                            <>
+                              {t('studentsTable.delete')} <FaTrash className="mr-1" />
+                            </>
+                          ) : (
+                            <>
+                              <FaTrash className="mr-1" /> {t('studentsTable.delete')}
+                            </>
+                          )}
                         </button>
                       </td>
                     </tr>

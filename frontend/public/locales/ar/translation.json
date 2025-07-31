@@ -68,7 +68,8 @@
     "present": "عدد مرات الحضور",
     "absent": "عدد مرات الغياب",
     "noData": "لا توجد بيانات حضور متاحة",
-    "noStudentData": "لا توجد بيانات طلاب متاحة"
+    "noStudentData": "لا توجد بيانات طلاب متاحة",
+    "searchStudents": "بحث عن الطلاب"
   },
   "chart": {
     "present": "حاضر",
@@ -123,7 +124,8 @@
     "edit": "تعديل",
     "delete": "حذف",
     "view": "عرض",
-    "resetFilters": "مسح الفلاتر"
+    "resetFilters": "مسح الفلاتر",
+    "addStudent": "إضافة طالب"
   },
   "editStudentForm": {
     "title": "تعديل بيانات الطالب",
